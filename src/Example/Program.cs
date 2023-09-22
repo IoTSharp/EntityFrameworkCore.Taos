@@ -1,14 +1,20 @@
 ﻿using ConsoleTableExt;
+
 using Example;
+
 using IoTSharp.Data.Taos;
+
 using Microsoft.EntityFrameworkCore;
+
 using Newtonsoft.Json.Linq;
+
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Net.WebSockets;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,9 +40,9 @@ namespace TaosADODemo
 
         private static void Main(string[] args)
         {
-            issue259_258();
+            //issue259_258();
             var IS_RUNNING_IN_CONTAINER = bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out bool _DOTNET_RUNNING_IN_CONTAINER) && _DOTNET_RUNNING_IN_CONTAINER;
-            var _dbhost = IS_RUNNING_IN_CONTAINER ? "taos" : System.Net.Dns.GetHostName();
+            var _dbhost = "172.16.0.189";// IS_RUNNING_IN_CONTAINER ? "taos" : System.Net.Dns.GetHostName();
             Console.WriteLine($"主机名:{_dbhost} 当前程序运行在{(IS_RUNNING_IN_CONTAINER ? "容器内" : "主机中")} ");
             Console.WriteLine($"CPU:{Environment.ProcessorCount} 主机名:{Environment.MachineName}");
             var p = new Ping();
@@ -44,16 +50,18 @@ namespace TaosADODemo
             Console.WriteLine($"{pr.Status} {pr.RoundtripTime}");
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             DbProviderFactories.RegisterFactory("TDengine", TaosFactory.Instance);
-            string database = "test";
+            string database = "ntest";
             var builder = new TaosConnectionStringBuilder()
             {
                 DataSource = _dbhost,
                 DataBase = database,
                 Username = "root",
-                Password = "taosdata",
+                Password = "astop.123",
                 Port = 6030,
                 PoolSize = 20
             };
+            UseTaosEFCore(builder.UseWebSocket());
+
             var builder_cloud = new TaosConnectionStringBuilder()
             {
                 DataSource = "gw.us-east.azure.cloud.tdengine.com",
@@ -137,7 +145,7 @@ namespace TaosADODemo
         /// </summary>
         private static void issue259_258()
         {
-             var cnt=new TaosConnection();
+            var cnt = new TaosConnection();
             IoTSharp.Data.Taos.TaosFactory.Instance.CreateConnection();
         }
 
@@ -207,10 +215,11 @@ namespace TaosADODemo
                 if (reader.Read())
                 {
                     var ts = reader.GetDateTime("ts");
-                    try {
+                    try
+                    {
                         reader.GetString(1);
                     }
-                    catch (Exception ex) 
+                    catch (Exception ex)
                     {
                         Console.WriteLine(ex.Message);
                     }
@@ -218,7 +227,8 @@ namespace TaosADODemo
                 Console.WriteLine($"cdata index at {index}");
                 Console.WriteLine(cmd_select.CommandText);
                 Console.WriteLine("");
-                try {
+                try
+                {
                     ConsoleTableBuilder.From(reader.ToDataTable()).WithFormat(ConsoleTableBuilderFormat.MarkDown).ExportAndWriteLine();
                 }
                 catch (Exception ex)
@@ -276,7 +286,8 @@ namespace TaosADODemo
                 Console.WriteLine($"UploadTelemetryDataPool 耗时:{t2}");
                 Thread.Sleep(TimeSpan.FromSeconds(2));
                 var reader2 = connection.CreateCommand("select last_row(*) from telemetrydata group by deviceid,keyname ;").ExecuteReader();
-                try {
+                try
+                {
                     ConsoleTableBuilder.From(reader2.ToDataTable()).WithFormat(ConsoleTableBuilderFormat.Default).ExportAndWriteLine();
                 }
                 catch (Exception ex)
@@ -287,7 +298,8 @@ namespace TaosADODemo
                 List<string> list = new List<string>();
                 while (reader3.Read())
                 {
-                    try {
+                    try
+                    {
                         list.Add(reader3.GetString("keyname"));
                     }
                     catch (Exception ex)
@@ -380,7 +392,8 @@ namespace TaosADODemo
                 Console.WriteLine($"cdata index at {index}");
                 Console.WriteLine(cmd_select.CommandText);
                 Console.WriteLine("");
-                try {
+                try
+                {
                     ConsoleTableBuilder.From(reader.ToDataTable()).WithFormat(ConsoleTableBuilderFormat.MarkDown).ExportAndWriteLine();
                 }
                 catch (Exception ex)
@@ -430,7 +443,8 @@ namespace TaosADODemo
                 Console.WriteLine($"UploadTelemetryDataPool 耗时:{t2}");
                 Thread.Sleep(TimeSpan.FromSeconds(2));
                 var reader2 = connection.CreateCommand("select last_row(*) from telemetrydata group by deviceid,keyname ;").ExecuteReader();
-                try {
+                try
+                {
                     ConsoleTableBuilder.From(reader2.ToDataTable()).WithFormat(ConsoleTableBuilderFormat.Default).ExportAndWriteLine();
                 }
                 catch (Exception ex)
@@ -441,7 +455,8 @@ namespace TaosADODemo
                 List<string> list = new List<string>();
                 while (reader3.Read())
                 {
-                    try {
+                    try
+                    {
                         list.Add(reader3.GetString("keyname"));
                     }
                     catch (Exception ex)
@@ -564,12 +579,32 @@ namespace TaosADODemo
             using (var context = new TaosContext(new DbContextOptionsBuilder()
                                                     .UseTaos(builder.ConnectionString).Options))
             {
+
                 Console.WriteLine("EnsureCreated");
                 context.Database.EnsureCreated();
-                for (int i = 0; i < 10; i++)
+                //var f0 = from s in context.Sensor where s.pm25 > 0 select s;
+                //var farry = f0.ToList();
+                var tc = context.Sensor.Count();
+                var addC = 0;
+                if (tc == 0)
+                {
+                    addC = 1;
+                }
+                for (int i = 0; i < addC; i++)
                 {
                     var rd = new Random();
-                    context.Sensor.Add(new Sensor() { ts = DateTime.Now.AddMilliseconds(i + 10), degree = rd.NextDouble(), pm25 = rd.Next(0, 1000) });
+                    context.Sensor.Add(new Sensor()
+                    {
+                        ts = DateTime.Now.AddMilliseconds(i + 10),
+                        productCode = $"productCode{i}",
+                        deviceCode = $"deviceCode{i}#Test",
+                        propertyCode = $"propertyCode#{i}",
+                        tableName = $"tableName{i}",
+                        content = null,
+                        value = rd.Next(0, 100),
+                        degree = rd.NextDouble(),
+                        pm25 = rd.Next(0, 1000)
+                    });
                     Thread.Sleep(10);
                 }
                 Console.WriteLine("Saving");
@@ -577,7 +612,7 @@ namespace TaosADODemo
                 Console.WriteLine("");
                 Console.WriteLine("from s in context.sensor where s.pm25 > 0 select s ");
                 Console.WriteLine("");
-                var f = from s in context.Sensor where s.pm25 > 0 select s;
+                var f = from s in context.Sensor where true select s;
                 var ary = f.ToArray();
                 if (ary.Any())
                 {
@@ -654,11 +689,11 @@ namespace TaosADODemo
             jo.Add("tags", tags1);
             int resultjson2 = connection.ExecuteBulkInsert(new JsonArray(jo), TDengineDriver.TDengineSchemalessPrecision.TSDB_SML_TIMESTAMP_NOT_CONFIGURED);
             Console.WriteLine($"行插入 {resultjson2}");
-          
+
         }
         private static void BulkInsertByJsonAndTags2(TaosConnection connection)
         {
-           
+
             var jo = new JObject
                 {
                     { "metric", "stb0_0" },
@@ -673,7 +708,7 @@ namespace TaosADODemo
                     { "t4", "123_abc_.!@#$%^&*:;,./?|+-=()[]{}<>" }
                 };
             jo.Add("tags", tags1);
-            int resultjson2 = connection.ExecuteBulkInsert(new JArray ( jo ), TDengineDriver.TDengineSchemalessPrecision.TSDB_SML_TIMESTAMP_NOT_CONFIGURED);
+            int resultjson2 = connection.ExecuteBulkInsert(new JArray(jo), TDengineDriver.TDengineSchemalessPrecision.TSDB_SML_TIMESTAMP_NOT_CONFIGURED);
             Console.WriteLine($"行插入 {resultjson2}");
         }
 
@@ -706,7 +741,8 @@ namespace TaosADODemo
                 "meters,location=Beijing.Haidian,groupid=3 current=11.3,voltage=221,phase=0.35 1648432611250"
             };
 
-            try {
+            try
+            {
                 int result = connection.ExecuteLineBulkInsert(lines);
                 Console.WriteLine($"行插入 {result}");
                 if (result != lines.Length)
@@ -840,10 +876,12 @@ namespace TaosADODemo
             Console.WriteLine($"{insertSql}{0}", _insertcmd.ExecuteNonQuery());
             string querySql = $"select * from {stable}";
             var _qreader = connection.CreateCommand(querySql).ExecuteReader();
-            try {
+            try
+            {
                 ConsoleTableBuilder.From(_qreader.ToDataTable()).WithFormat(ConsoleTableBuilderFormat.Default).ExportAndWriteLine();
             }
-            catch(Exception ex) {
+            catch (Exception ex)
+            {
                 Console.WriteLine($"{ex.Message}");
             }
         }
