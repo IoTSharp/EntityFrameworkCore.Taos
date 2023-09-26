@@ -58,9 +58,10 @@ namespace TaosADODemo
                 Username = "root",
                 Password = "astop.123",
                 Port = 6030,
-                PoolSize = 20
+                PoolSize = 200
             };
-            UseTaosEFCore(builder.UseWebSocket());
+            builder.ConnectionTimeout = 1000;
+            UseTaosEFCore(builder.UseRESTful());
 
             var builder_cloud = new TaosConnectionStringBuilder()
             {
@@ -575,6 +576,7 @@ namespace TaosADODemo
 
         private static void UseTaosEFCore(TaosConnectionStringBuilder builder)
         {
+
             //Example for  Entity Framework Core
             using (var context = new TaosContext(new DbContextOptionsBuilder()
                                                     .UseTaos(builder.ConnectionString).Options))
@@ -584,26 +586,26 @@ namespace TaosADODemo
                 context.Database.EnsureCreated();
                 //var f0 = from s in context.Sensor where s.pm25 > 0 select s;
                 //var farry = f0.ToList();
-                var tc = context.Sensor.Count();
+
+                var tc = context.DeviceData.Count();
                 var addC = 0;
                 if (tc == 0)
                 {
-                    addC = 1;
+                    addC = 100;
                 }
                 for (int i = 0; i < addC; i++)
                 {
                     var rd = new Random();
-                    context.Sensor.Add(new Sensor()
+                    context.DeviceData.Add(new DeviceData()
                     {
-                        ts = DateTime.Now.AddMilliseconds(i + 10),
-                        productCode = $"productCode{i}",
-                        deviceCode = $"deviceCode{i}#Test",
-                        propertyCode = $"propertyCode#{i}",
-                        tableName = $"tableName{i}",
-                        content = null,
-                        value = rd.Next(0, 100),
-                        degree = rd.NextDouble(),
-                        pm25 = rd.Next(0, 1000)
+                        Time = DateTime.Now.AddMilliseconds(i + 10),
+                        ProductCode = $"productCode{i}",
+                        DeviceCode = $"deviceCode{i}#Test",
+                        PropertyCode = $"propertyCode#{i}",
+                        SubTableName = $"tableName{i}",
+                        Content = rd.Next(0, 1000).ToString(),
+                        Data = rd.Next(0, 1000),
+                        Id = Guid.NewGuid().ToString("N")
                     });
                     Thread.Sleep(10);
                 }
@@ -612,8 +614,11 @@ namespace TaosADODemo
                 Console.WriteLine("");
                 Console.WriteLine("from s in context.sensor where s.pm25 > 0 select s ");
                 Console.WriteLine("");
-                var f = from s in context.Sensor where true select s;
-                var ary = f.ToArray();
+                //var tc = context.DeviceData.Count();
+                var f = from s in context.DeviceData where true select s;
+                var ary = f.ToList();
+
+                var x = f.Count();
                 if (ary.Any())
                 {
                     ConsoleTableBuilder.From(ary.ToList()).WithFormat(ConsoleTableBuilderFormat.MarkDown).ExportAndWriteLine();

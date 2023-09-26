@@ -67,6 +67,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IHistoryRepository, TaosHistoryRepository>()
                 .TryAdd<IBatchExecutor, TaosBatchExecutor>()
                 .TryAdd<ICommandBatchPreparer, TaosCommandBatchPreparer>()
+                .TryAdd<IQueryContextFactory, TaosQueryContextFactory>()
                 .TryAdd<IModelCustomizer, TaosModelCustomizer>()
                 .TryAdd<IRelationalCommandBuilderFactory, TaosEFCommandBuilderFactory>()
 

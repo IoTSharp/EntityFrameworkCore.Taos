@@ -30,22 +30,32 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions
         {
 
             var entityType = entityTypeBuilder.Metadata;
+            var taosAtt = entityType.ClrType.GetCustomAttribute<TaosAttribute>();
             var members = entityType.GetRuntimeProperties().Values.Cast<MemberInfo>()
                 //.Concat(entityType.GetRuntimeFields().Values)
                 .Select(s =>
                 {
                     var pmeta = entityType.FindProperty(s);
                     var attr = s.GetCustomAttribute<TaosColumnAttribute>();
-                    if (pmeta == null && (attr != null && !attr.IsTableName))
+                    if (pmeta == null && (attr != null && !attr.IsSubTableName))
                     {
                         pmeta = entityType.AddProperty(s);
                     }
 
                     return (Menber: s, Attr: attr, Meta: pmeta);
                 });
+            if (taosAtt.IsSuperTable)
+            {
+                var haveSubTableName = members.Where(w => w.Attr != null && w.Attr.IsSubTableName).Count() > 0;
+                if (!haveSubTableName)
+                {
+                    throw new Exception("super table model need subtable name property");
+                }
+            }
+
             foreach (var m in members)
             {
-                if (m.Attr.IsTableName)
+                if (m.Attr.IsSubTableName)
                 {
                     entityTypeBuilder.Ignore(m.Menber.GetSimpleMemberName(), fromDataAnnotation: true);
                 }
@@ -56,8 +66,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions
             {
                 var keyProps = keyMembers.Select(s =>
                 {
-                    var name = string.IsNullOrWhiteSpace(s.Attr.ColumnName) ? s.Menber.Name : s.Attr.ColumnName;
-                    return entityTypeBuilder.Metadata.FindProperty(name);
+                    //var name = string.IsNullOrWhiteSpace(s.Attr.ColumnName) ? s.Menber.Name : s.Attr.ColumnName;
+                    return entityTypeBuilder.Metadata.FindProperty(s.Menber);
                 }).Where(w => w != null).ToList();
 
                 if (keyProps.Count > 0)
@@ -127,8 +137,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions
 
         public void ProcessModelFinalizing(IConventionModelBuilder modelBuilder, IConventionContext<IConventionModelBuilder> context)
         {
-            
-            
+
+
         }
 
 

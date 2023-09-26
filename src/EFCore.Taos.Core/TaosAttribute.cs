@@ -45,14 +45,14 @@ namespace IoTSharp.EntityFrameworkCore.Taos
         /// <summary>
         /// 是否为表名 超级表时有用
         /// </summary>
-        public bool IsTableName { get; set; }
+        public bool IsSubTableName { get; set; }
         public TaosColumnAttribute(string columnName, TaosDataType columnType, int columnLength = 0, bool isTag = false, bool isTableName = false)
         {
             ColumnName = columnName;
             ColumnType = columnType;
             ColumnLength = columnLength;
             IsTag = isTag;
-            IsTableName = isTableName;
+            IsSubTableName = isTableName;
 
             switch (columnType)
             {

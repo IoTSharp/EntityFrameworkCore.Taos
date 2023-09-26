@@ -329,6 +329,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
 
                 case WebSocketMessageType.Text:
                     var json = Encoding.UTF8.GetString(buffer, 0, offset);
+                    Debug.WriteLine($"TaosWebSocket WSExecute Json:{json}");
                     _result = Newtonsoft.Json.JsonConvert.DeserializeObject<R>(json);
                     break;
 

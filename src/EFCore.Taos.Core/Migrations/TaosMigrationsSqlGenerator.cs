@@ -412,13 +412,13 @@ namespace Microsoft.EntityFrameworkCore.Migrations
 
             var opertionTagsGroup = operation.Columns.GroupBy(w =>
             {
-                var propInfo = propInfos.FirstOrDefault(f => f.propertyInfo.Name == w.Name);
+                var propInfo = propInfos.FirstOrDefault(f => f.propertyInfo.Name == w.Name || f.Info.ColumnName == w.Name);
 
                 return propInfo.Info?.IsTag ?? false;
 
             }).ToList();
 
-            var othertagsOpertions = opertionTagsGroup.FirstOrDefault(w => !w.Key).ToList();
+            var othertagsOpertions = opertionTagsGroup.FirstOrDefault(w => !w.Key)?.ToList();
             if (othertagsOpertions != null && othertagsOpertions.Count() > 0)
             {
                 builder.Append("(");

@@ -235,7 +235,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
                         var obj = ((InternalEntityEntry)command.Entries.FirstOrDefault())?.Entity;
                         if (obj != null)
                         {
-                            var subTableNameMap = propertyAttrMaps.FirstOrDefault(f => f.Attr != null && f.Attr.IsTableName);
+                            var subTableNameMap = propertyAttrMaps.FirstOrDefault(f => f.Attr != null && f.Attr.IsSubTableName);
                             if (subTableNameMap.Attr != null)
                             {
                                 subTableName = subTableNameMap.PropertyInfo.GetValue(obj)?.ToString();
@@ -418,7 +418,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
                         var obj = ((InternalEntityEntry)command.Entries.FirstOrDefault())?.Entity;
                         if (obj != null)
                         {
-                            var subTableNameMap = propertyAttrMaps.FirstOrDefault(f => f.Attr != null && f.Attr.IsTableName);
+                            var subTableNameMap = propertyAttrMaps.FirstOrDefault(f => f.Attr != null && f.Attr.IsSubTableName);
                             if (subTableNameMap.Attr != null)
                             {
                                 subTableName = subTableNameMap.PropertyInfo.GetValue(obj)?.ToString();
