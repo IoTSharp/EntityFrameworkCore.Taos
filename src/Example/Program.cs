@@ -604,7 +604,7 @@ namespace TaosADODemo
                         PropertyCode = $"propertyCode#{i}",
                         SubTableName = $"tableName{i}",
                         Content = rd.Next(0, 1000).ToString(),
-                        Data = rd.Next(0, 1000),
+                        Data = null,
                         Id = Guid.NewGuid().ToString("N")
                     });
                     Thread.Sleep(10);

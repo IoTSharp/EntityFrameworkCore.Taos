@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
+using IoTSharp.Data.Taos.Protocols.TDWebSocket;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 {
@@ -59,8 +62,51 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
             var closeConnection = (behavior & CommandBehavior.CloseConnection) != 0;
             try
             {
+                if (_parameters.IsValueCreated && _parameters.Value.Count > 0)
+                {
+                    var pms = new List<TaosParameter>();
+                    foreach (TaosParameter p in _parameters.Value)
+                    {
+                        pms.Add(p);
+                    }
+                    pms.OrderByDescending(o => o.ParameterName?.Length ?? 0)
+                        .ToList().ForEach(p =>
+                    {
+                        var v = "''";
+                        switch (p.TaosType)
+                        {
+                            case TaosType.Integer:
+                                v = p.Value.ToString();
+                                break;
+                            case TaosType.Real:
+                                v = p.Value.ToString();
+                                break;
+                            case TaosType.Text:
+                                if (string.IsNullOrWhiteSpace(p.Value?.ToString()))
+                                {
+                                    v = "null";
+                                }
+                                else if (p.Value is DateTime pvt)
+                                {
+                                    v = $"\"{pvt.ToString("yyyy-MM-dd HH:mm:ss.fffffff")}\"";
+                                }
+                                else
+                                {
+                                    v = $"\"{p.Value}\"";
+                                }
+                                break;
+                            case TaosType.Blob:
+                                v = $"{p.Value}";
+                                break;
+                            default:
+                                break;
+                        }
+                        _commandText = _commandText.Replace(p.ParameterName, v);
+                    });
+                }
                 var tr = Execute(_commandText);
                 dataReader = new TaosDataReader(command, new TaosRESTfulContext(tr));
+
             }
             catch when (unprepared)
             {
@@ -123,11 +169,11 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 
         private static T JsonDeserialize<T>(string context)
         {
-//#if NET46_OR_GREATER || NETSTANDARD2_0_OR_GREATER
+            //#if NET46_OR_GREATER || NETSTANDARD2_0_OR_GREATER
             return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(context);
-//#else
-//            return System.Text.Json.JsonSerializer.Deserialize<T>(context);
-//#endif
+            //#else
+            //            return System.Text.Json.JsonSerializer.Deserialize<T>(context);
+            //#endif
         }
 
 
@@ -167,10 +213,10 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
             string _timez = string.IsNullOrEmpty(builder.TimeZone) ? "" : $"?tz={builder.TimeZone}";
             var httpClientHandler = new HttpClientHandler();
             _client = new HttpClient(httpClientHandler);
-            _uri= new Uri($"http://{builder.DataSource}:{builder.Port}/rest/sql{(!string.IsNullOrEmpty(builder.DataBase)?"/":"")}{builder.DataBase}{_timez}"); 
+            _uri = new Uri($"http://{builder.DataSource}:{builder.Port}/rest/sql{(!string.IsNullOrEmpty(builder.DataBase) ? "/" : "")}{builder.DataBase}{_timez}");
             _client.Timeout = TimeSpan.FromSeconds(builder.ConnectionTimeout);
             var authToken = Encoding.ASCII.GetBytes($"{builder.Username}:{builder.Password}");
-            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",Convert.ToBase64String(authToken));
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(authToken));
             _client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/plain"));
             _client.DefaultRequestHeaders.AcceptCharset.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("utf-8"));
             var _name = typeof(TaosRESTful).Assembly.GetName();
