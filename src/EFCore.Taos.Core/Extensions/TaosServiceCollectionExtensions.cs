@@ -77,6 +77,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IQuerySqlGeneratorFactory, TaosQuerySqlGeneratorFactory>()
                 .TryAdd<IQueryableMethodTranslatingExpressionVisitorFactory, TaosQueryableMethodTranslatingExpressionVisitorFactory>()
                 .TryAdd<IRelationalSqlTranslatingExpressionVisitorFactory, TaosSqlTranslatingExpressionVisitorFactory>()
+                .TryAdd<IRelationalParameterBasedSqlProcessorFactory, TaosParameterBasedSqlProcessorFactory>()
+
                 .TryAddProviderSpecificServices(
                     b => b
                     .TryAddScoped<ITaosRelationalConnection, TaosRelationalConnection>()

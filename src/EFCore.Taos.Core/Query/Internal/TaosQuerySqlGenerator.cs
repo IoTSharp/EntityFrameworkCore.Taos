@@ -1,7 +1,10 @@
 // Copyright (c)  Maikebing. All rights reserved.
 // Licensed under the MIT License, See License.txt in the project root for license information.
 
+using System;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
+
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
@@ -17,7 +20,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
         public TaosQuerySqlGenerator(QuerySqlGeneratorDependencies dependencies)
             : base(dependencies)
         {
-        
+
             _sqlGenerationHelper = dependencies.SqlGenerationHelper;
         }
         protected override string AliasSeparator => "";
@@ -27,7 +30,8 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
             selectExpression.RemoveTypeAs();
 #pragma warning restore EF1001 // Internal EF Core API usage.
 
-            return base.VisitSelect(selectExpression);
+            var exp = base.VisitSelect(selectExpression);
+            return exp;
         }
 
         protected override Expression VisitColumn(ColumnExpression columnExpression)
@@ -49,7 +53,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
         //        && binaryExpression.Type == typeof(string)
         //            ? " || "
         //            : base.GetOperator(binaryExpression);
-      
+
         protected override void GenerateLimitOffset(SelectExpression selectExpression)
         {
             Check.NotNull(selectExpression, nameof(selectExpression));
@@ -77,6 +81,30 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
         {
             // Taos doesn't support parentheses around set operation operands
             Visit(operand);
+        }
+        protected override Expression VisitExtension(Expression extensionExpression)
+        {
+            var exp = extensionExpression switch
+            {
+                TaosMatchExpression matchExpression => VisitTaosMatchExpression(matchExpression),
+                _ => base.VisitExtension(extensionExpression)
+            };
+
+
+            return exp;
+        }
+
+        private Expression VisitTaosMatchExpression(TaosMatchExpression matchExpression)
+        {
+            Visit(matchExpression.Match);
+            this.Sql.Append(" MATCH ");
+            return Visit(matchExpression.Pattern);
+
+        }
+
+        protected override Expression VisitSqlConstant(SqlConstantExpression sqlConstantExpression)
+        {
+            return base.VisitSqlConstant(sqlConstantExpression);
         }
     }
 }

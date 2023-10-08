@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Query;
@@ -71,12 +72,12 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
         private static readonly MethodInfo _endsWithMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.EndsWith), new[] { typeof(string) });
 
-        private readonly ISqlExpressionFactory _sqlExpressionFactory;
+        private readonly TaosSqlExpressionFactory _sqlExpressionFactory;
         private const char LikeEscapeChar = '\\';
 
         public TaosStringMethodTranslator(ISqlExpressionFactory sqlExpressionFactory)
         {
-            _sqlExpressionFactory = sqlExpressionFactory;
+            _sqlExpressionFactory = (TaosSqlExpressionFactory)sqlExpressionFactory;
         }
 
         public virtual SqlExpression Translate(SqlExpression instance, MethodInfo method, IReadOnlyList<SqlExpression> arguments)
@@ -176,16 +177,12 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                 instance = _sqlExpressionFactory.ApplyTypeMapping(instance, stringTypeMapping);
                 pattern = _sqlExpressionFactory.ApplyTypeMapping(pattern, stringTypeMapping);
 
-                return _sqlExpressionFactory.OrElse(
-                    _sqlExpressionFactory.Equal(
-                        pattern,
-                        _sqlExpressionFactory.Constant(string.Empty, stringTypeMapping)),
-                    _sqlExpressionFactory.GreaterThan(
-                        _sqlExpressionFactory.Function(
-                            "instr",
-                            new[] { instance, pattern }, true, null,
-                            typeof(int)),
-                        _sqlExpressionFactory.Constant(0)));
+                return _sqlExpressionFactory.Match(instance, pattern, stringTypeMapping);
+                //return _sqlExpressionFactory.OrElse(
+                //    _sqlExpressionFactory.Equal(
+                //        pattern,
+                //        _sqlExpressionFactory.Constant(string.Empty, stringTypeMapping)),
+                //    _sqlExpressionFactory.Match(instance, pattern, stringTypeMapping));
             }
 
             if (_startsWithMethodInfo.Equals(method))

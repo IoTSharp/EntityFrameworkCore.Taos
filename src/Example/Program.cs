@@ -615,7 +615,8 @@ namespace TaosADODemo
                 Console.WriteLine("from s in context.sensor where s.pm25 > 0 select s ");
                 Console.WriteLine("");
                 //var tc = context.DeviceData.Count();
-                var f = from s in context.DeviceData where true select s;
+                var m = new { A = "pr", B = 1 };
+                var f = from s in context.DeviceData where s.ProductCode.Contains(m.A) select s;
                 var ary = f.ToList();
 
                 var x = f.Count();
