@@ -92,7 +92,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                                 }
                                 else
                                 {
-                                    v = $"\"{p.Value}\"";
+                                    v = $"\"{ToLiteral(p.Value.ToString())}\"";
                                 }
                                 break;
                             case TaosType.Blob:
@@ -175,7 +175,42 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
             //            return System.Text.Json.JsonSerializer.Deserialize<T>(context);
             //#endif
         }
-
+        private static string ToLiteral(string input, bool addQuote = false)
+        {
+            StringBuilder literal = new StringBuilder(input.Length + 2);
+            if (addQuote) literal.Append("\"");
+            foreach (var c in input)
+            {
+                switch (c)
+                {
+                    case '\"': literal.Append("\\\""); break;
+                    case '\\': literal.Append(@"\\"); break;
+                    case '\0': literal.Append(@"\0"); break;
+                    case '\a': literal.Append(@"\a"); break;
+                    case '\b': literal.Append(@"\b"); break;
+                    case '\f': literal.Append(@"\f"); break;
+                    case '\n': literal.Append(@"\n"); break;
+                    case '\r': literal.Append(@"\r"); break;
+                    case '\t': literal.Append(@"\t"); break;
+                    case '\v': literal.Append(@"\v"); break;
+                    default:
+                        // ASCII printable character
+                        if (c >= 0x20 && c <= 0x7e)
+                        {
+                            literal.Append(c);
+                            // As UTF16 escaped character
+                        }
+                        else
+                        {
+                            literal.Append(@"\u");
+                            literal.Append(((int)c).ToString("x4"));
+                        }
+                        break;
+                }
+            }
+            if (addQuote) literal.Append("\"");
+            return literal.ToString();
+        }
 
         private static string JsonSerialize<T>(T obj)
         {
