@@ -245,12 +245,15 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
                 }
             }
             commandStringBuilder.Append("INSERT INTO ");
+
             var (updateEntity, clrType, attr) = command.Entries
                 .Select(f => (UpdateEntity: f, ClrType: f.EntityType.ClrType, Attr: f.EntityType.ClrType.GetCustomAttribute<TaosAttribute>()))
                 .Where(w => w.Attr.TableName == command.TableName)
                 .FirstOrDefault();
 
+            commandStringBuilder.Append("\"");
             SqlGenerationHelper.DelimitIdentifier(commandStringBuilder, (isSupperTable ? subTableName : command.TableName), command.Schema);
+            commandStringBuilder.Append("\"");
             if (isSupperTable)
             {
                 commandStringBuilder.Append($"  USING {command.TableName} ");
