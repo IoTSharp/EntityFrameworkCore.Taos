@@ -15,8 +15,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 {
     internal class TaosRESTful : ITaosProtocol
     {
-        private System.Net.Http.HttpClient _client = null;
-        private Uri _uri;
+        //private System.Net.Http.HttpClient _client = null;
         private string _databaseName;
         private TaosConnectionStringBuilder _builder;
 
@@ -24,13 +23,13 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
         {
             _databaseName = databaseName;
             _builder.DataBase = _databaseName;
-            ResetClient(_builder);
+            //ResetClient(_builder);
             return true;
         }
 
         public void Close(TaosConnectionStringBuilder connectionStringBuilder)
         {
-            _client?.Dispose();
+            //_client?.Dispose();
         }
 
         public TaosDataReader ExecuteReader(CommandBehavior behavior, TaosCommand command)
@@ -122,20 +121,20 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
             Console.WriteLine($"_commandText:{_commandText}");
 #endif
             var body = _commandText;
-            var rest = new HttpRequestMessage(HttpMethod.Post, _uri);
+            var rest = new HttpRequestMessage(HttpMethod.Post,"");
             rest.Content = new StringContent(body);
             HttpResponseMessage response = null;
             string context = string.Empty;
-            var task = Task.Run(async () =>
-             {
-                 response = await _client.SendAsync(rest);
-                 context = await response.Content?.ReadAsStringAsync();
-             });
+            using var _client = GetClient();
+            var sendTask = _client.SendAsync(rest);
             try
             {
-                var isok = Task.WaitAll(new[] { task }, _client.Timeout);
+                var isok = sendTask.Wait(_client.Timeout);
                 if (isok)
                 {
+                    response = sendTask.Result;
+                    context = response.Content?.ReadAsStringAsync().Result;
+
                     result = JsonDeserialize<TaosResult>(context);
                     if (response.IsSuccessStatusCode)
                     {
@@ -157,7 +156,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                 }
                 else
                 {
-                    TaosException.ThrowExceptionForRC(_commandText, new TaosErrorResult() { Code = -1, Error = task.Exception?.Message + "\n" + task.Exception?.InnerException?.Message });
+                    TaosException.ThrowExceptionForRC(_commandText, new TaosErrorResult() { Code = -1, Error = sendTask.Exception?.Message + "\n" + sendTask.Exception?.InnerException?.Message });
                 }
             }
             catch (Exception ex)
@@ -238,17 +237,18 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
         public bool Open(TaosConnectionStringBuilder connectionStringBuilder)
         {
             _builder = connectionStringBuilder;
-            ResetClient(_builder);
+            //ResetClient(_builder);
             return true;
         }
 
-        private void ResetClient(TaosConnectionStringBuilder connectionStringBuilder)
+        private HttpClient GetClient()
         {
-            var builder = connectionStringBuilder;
+            var builder = this._builder;
             string _timez = string.IsNullOrEmpty(builder.TimeZone) ? "" : $"?tz={builder.TimeZone}";
             var httpClientHandler = new HttpClientHandler();
-            _client = new HttpClient(httpClientHandler);
-            _uri = new Uri($"http://{builder.DataSource}:{builder.Port}/rest/sql{(!string.IsNullOrEmpty(builder.DataBase) ? "/" : "")}{builder.DataBase}{_timez}");
+            var _client = new HttpClient(httpClientHandler);
+            var _uri = new Uri($"http://{builder.DataSource}:{builder.Port}/rest/sql{(!string.IsNullOrEmpty(builder.DataBase) ? "/" : "")}{builder.DataBase}{_timez}");
+            _client.BaseAddress = _uri;
             _client.Timeout = TimeSpan.FromSeconds(builder.ConnectionTimeout);
             var authToken = Encoding.ASCII.GetBytes($"{builder.Username}:{builder.Password}");
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(authToken));
@@ -256,6 +256,8 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
             _client.DefaultRequestHeaders.AcceptCharset.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("utf-8"));
             var _name = typeof(TaosRESTful).Assembly.GetName();
             _client.DefaultRequestHeaders.Add("User-Agent", $"{_name.Name}/{_name.Version}");
+
+            return _client;
         }
 
         public void Return(nint taos)

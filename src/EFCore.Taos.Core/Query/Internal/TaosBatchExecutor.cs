@@ -31,103 +31,102 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
 
         public virtual int Execute(IEnumerable<ModificationCommandBatch> commandBatches, IRelationalConnection connection)
         {
-            using var batchEnumerator = commandBatches.GetEnumerator();
-
-            if (!batchEnumerator.MoveNext())
+            var cmdBatches = commandBatches.ToList();
+            if (commandBatches.Any())
             {
-                return 0;
-            }
 
-            var batch = batchEnumerator.Current;
+                var batch = commandBatches.First();
 
-            var rowsAffected = 0;
-            var transaction = connection.CurrentTransaction;
-            var beganTransaction = false;
-            var createdSavepoint = false;
-            try
-            {
-                var transactionEnlistManager = connection as ITransactionEnlistmentManager;
-                var autoTransactionBehavior = CurrentContext.Context.Database.AutoTransactionBehavior;
-                if (transaction == null
-                    && transactionEnlistManager?.EnlistedTransaction is null
-                    && transactionEnlistManager?.CurrentAmbientTransaction is null
-                    // Don't start a transaction if we have a single batch which doesn't require a transaction (single command), for perf.
-                    && ((autoTransactionBehavior == AutoTransactionBehavior.WhenNeeded
-                            && (batch.AreMoreBatchesExpected || batch.RequiresTransaction))
-                        || autoTransactionBehavior == AutoTransactionBehavior.Always))
+                var rowsAffected = 0;
+                var transaction = connection.CurrentTransaction;
+                var beganTransaction = false;
+                var createdSavepoint = false;
+                try
                 {
-                    transaction = connection.BeginTransaction();
-                    beganTransaction = true;
-                }
-                else
-                {
-                    connection.Open();
-
-                    if (transaction?.SupportsSavepoints == true
-                        && CurrentContext.Context.Database.AutoSavepointsEnabled)
+                    var transactionEnlistManager = connection as ITransactionEnlistmentManager;
+                    var autoTransactionBehavior = CurrentContext.Context.Database.AutoTransactionBehavior;
+                    if (transaction == null
+                        && transactionEnlistManager?.EnlistedTransaction is null
+                        && transactionEnlistManager?.CurrentAmbientTransaction is null
+                        // Don't start a transaction if we have a single batch which doesn't require a transaction (single command), for perf.
+                        && ((autoTransactionBehavior == AutoTransactionBehavior.WhenNeeded
+                                && (batch.AreMoreBatchesExpected || batch.RequiresTransaction))
+                            || autoTransactionBehavior == AutoTransactionBehavior.Always))
                     {
-                        transaction.CreateSavepoint(SavepointName);
-                        createdSavepoint = true;
+                        transaction = connection.BeginTransaction();
+                        beganTransaction = true;
                     }
-                }
-
-                do
-                {
-                    batch = batchEnumerator.Current;
-                    batch.Execute(connection);
-                    rowsAffected += batch.ModificationCommands.Count;
-                }
-                while (batchEnumerator.MoveNext());
-
-                if (beganTransaction)
-                {
-                    transaction!.Commit();
-                }
-            }
-            catch
-            {
-                if (createdSavepoint && connection.DbConnection.State == ConnectionState.Open)
-                {
-                    try
+                    else
                     {
-                        transaction!.RollbackToSavepoint(SavepointName);
-                    }
-                    catch (Exception e)
-                    {
-                        UpdateLogger.BatchExecutorFailedToRollbackToSavepoint(CurrentContext.GetType(), e);
-                    }
-                }
+                        connection.Open();
 
-                throw;
-            }
-            finally
-            {
-                if (beganTransaction)
-                {
-                    transaction!.Dispose();
-                }
-                else
-                {
-                    if (createdSavepoint)
-                    {
-                        if (connection.DbConnection.State == ConnectionState.Open)
+                        if (transaction?.SupportsSavepoints == true
+                            && CurrentContext.Context.Database.AutoSavepointsEnabled)
                         {
-                            try
-                            {
-                                transaction!.ReleaseSavepoint(SavepointName);
-                            }
-                            catch (Exception e)
-                            {
-                                UpdateLogger.BatchExecutorFailedToReleaseSavepoint(CurrentContext.GetType(), e);
-                            }
+                            transaction.CreateSavepoint(SavepointName);
+                            createdSavepoint = true;
+                        }
+                    }
+                    commandBatches.AsParallel().WithDegreeOfParallelism(4).ForAll(b =>
+                    {
+                        b.Execute(connection);
+                        Interlocked.Add(ref rowsAffected, b.ModificationCommands.Count);
+                    });
+
+                    if (beganTransaction)
+                    {
+                        transaction!.Commit();
+                    }
+                }
+                catch
+                {
+                    if (createdSavepoint && connection.DbConnection.State == ConnectionState.Open)
+                    {
+                        try
+                        {
+                            transaction!.RollbackToSavepoint(SavepointName);
+                        }
+                        catch (Exception e)
+                        {
+                            UpdateLogger.BatchExecutorFailedToRollbackToSavepoint(CurrentContext.GetType(), e);
                         }
                     }
 
-                    connection.Close();
+                    throw;
                 }
-            }
+                finally
+                {
+                    if (beganTransaction)
+                    {
+                        transaction!.Dispose();
+                    }
+                    else
+                    {
+                        if (createdSavepoint)
+                        {
+                            if (connection.DbConnection.State == ConnectionState.Open)
+                            {
+                                try
+                                {
+                                    transaction!.ReleaseSavepoint(SavepointName);
+                                }
+                                catch (Exception e)
+                                {
+                                    UpdateLogger.BatchExecutorFailedToReleaseSavepoint(CurrentContext.GetType(), e);
+                                }
+                            }
+                        }
 
-            return rowsAffected;
+                        connection.Close();
+                    }
+                }
+
+                return rowsAffected;
+            }
+            else
+            {
+                return 0;
+            }
         }
 
 
