@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -28,6 +29,8 @@ namespace IoTSharp.Data.Taos
         private bool _closed;
         private bool _closeConnection;
         private int _fieldCount;
+        private bool disposed = false;
+
 
         internal ITaosProtocol taos => _command?._connection?.taos;
         ITaosContext _context;
@@ -147,16 +150,19 @@ namespace IoTSharp.Data.Taos
         /// </param>
         protected override void Dispose(bool disposing)
         {
-            if (!disposing)
+            if (!disposed)
             {
-                return;
-            }
-            _command.DataReader = null;
+                if (!disposing)
+                {
+                    _command.DataReader = null;
 
-            _closed = true;
-            _context?.Dispose();
-            _context = null;
-            OnDispose?.Invoke(this, EventArgs.Empty);
+                    _closed = true;
+                    _context?.Dispose();
+                    _context = null;
+                    OnDispose?.Invoke(this, EventArgs.Empty);
+                }
+                disposed = true;
+            }
         }
 
         /// <summary>

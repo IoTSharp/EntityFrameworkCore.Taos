@@ -10,6 +10,10 @@ using System.Text;
 using IoTSharp.Data.Taos.Protocols.TDWebSocket;
 using System.Linq;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Net.NetworkInformation;
+using System.Threading;
+using System.Security.Cryptography;
 
 namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 {
@@ -43,14 +47,14 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                 throw new ArgumentException($"InvalidCommandBehavior{behavior}");
             }
 
-            if (_connection?.State != ConnectionState.Open)
-            {
-                _connection.Open();
-                if (_connection?.State != ConnectionState.Open)
-                {
-                    throw new InvalidOperationException($"CallRequiresOpenConnection{nameof(ExecuteReader)}");
-                }
-            }
+            //if (_connection?.State != ConnectionState.Open)
+            //{
+            //    _connection.Open();
+            //    if (_connection?.State != ConnectionState.Open)
+            //    {
+            //        throw new InvalidOperationException($"CallRequiresOpenConnection{nameof(ExecuteReader)}");
+            //    }
+            //}
 
             if (string.IsNullOrEmpty(_commandText))
             {
@@ -116,24 +120,100 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 
         private TaosResult Execute(string _commandText)
         {
-            TaosResult result = null;
-#if DEBUG
-            Console.WriteLine($"_commandText:{_commandText}");
-#endif
-            var body = _commandText;
-            var rest = new HttpRequestMessage(HttpMethod.Post,"");
-            rest.Content = new StringContent(body);
-            HttpResponseMessage response = null;
-            string context = string.Empty;
-            using var _client = GetClient();
-            var sendTask = _client.SendAsync(rest);
-            try
+            var cmdPackage = CombineCommandPackage.CreatePackage(_commandText, this);
+            return cmdPackage.ExeTask.Result;
+        }
+
+
+
+        internal class CombineCommandPackage
+        {
+            private const int taosSqlMaxLength = 1048576;
+            private static System.Collections.Concurrent.ConcurrentQueue<CombineCommandPackage> packagesQueue = new System.Collections.Concurrent.ConcurrentQueue<CombineCommandPackage>();
+            internal Task<TaosResult> ExeTask { get; private set; }
+            public string CommandText { get; }
+            //internal TaosResult Result { get; private set; }
+
+
+            public bool IsInsertPackage { get; }
+
+            private TaosRESTful taosRESTful;
+            private TaskCompletionSource<TaosResult> _tcs;
+            internal DateTime CreateTime { get; private set; }
+
+
+            static CombineCommandPackage()
             {
-                var isok = sendTask.Wait(_client.Timeout);
-                if (isok)
+                Task.Run(() =>
                 {
-                    response = sendTask.Result;
-                    context = response.Content?.ReadAsStringAsync().Result;
+                    var insertPackages = new List<CombineCommandPackage>();
+                    while (true)
+                    {
+                        SpinWait.SpinUntil(() => packagesQueue.Count > 0 || (insertPackages != null && insertPackages.Count > 0));
+
+                        if (packagesQueue.TryDequeue(out var package))
+                        {
+
+                            if (package.IsInsertPackage)
+                            {
+                                insertPackages.Add(package);
+                            }
+                            else
+                            {
+                                _ = CombineExecute(new List<CombineCommandPackage> { package });
+                            }
+                        }
+                        if (
+                            insertPackages != null &&
+                            insertPackages.Count > 0 &&
+                            (
+                                DateTime.Now - insertPackages[0].CreateTime > TimeSpan.FromMilliseconds(4) ||
+                                insertPackages.Sum(s => s.CommandText?.Length ?? 0) * 1.1 > taosSqlMaxLength
+                            )
+                           )
+                        {
+                            _ = CombineExecute(insertPackages);
+                            insertPackages = new List<CombineCommandPackage>();
+                        }
+                    }
+                });
+            }
+            internal static CombineCommandPackage CreatePackage(string _commandText, TaosRESTful taosRESTful)
+            {
+                var package = new CombineCommandPackage(_commandText, taosRESTful);
+                packagesQueue.Enqueue(package);
+
+                return package; ;
+            }
+
+
+            private async static Task CombineExecute(List<CombineCommandPackage> packages)
+            {
+                if (packages == null || packages.Count == 0) return;
+                //聚合insert 语句
+
+                var _commandText = string.Join("", packages.Select(s => s.CommandText));
+
+                if (packages[0].IsInsertPackage)
+                {
+                    _commandText = _commandText.Replace(";INSERT INTO ", " ");
+                }
+
+
+                TaosResult result = null;
+#if DEBUG
+                Debug.WriteLine($"_commandText:{_commandText}");
+#endif
+                var body = _commandText;
+                var rest = new HttpRequestMessage(HttpMethod.Post, "");
+                rest.Content = new StringContent(body);
+                string context = string.Empty;
+                using var _client = packages[0].taosRESTful.GetClient();
+                try
+                {
+                    var response = await _client.SendAsync(rest);
+
+                    context = await response.Content?.ReadAsStringAsync();
 
                     result = JsonDeserialize<TaosResult>(context);
                     if (response.IsSuccessStatusCode)
@@ -153,17 +233,35 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                     {
                         TaosException.ThrowExceptionForRC(_commandText, new TaosErrorResult() { Code = (int)response.StatusCode, Error = response.ReasonPhrase });
                     }
+
+
+                    packages.ForEach(p =>
+                    {
+                        p._tcs.SetResult(result);
+                    });
                 }
-                else
+                catch (Exception ex)
                 {
-                    TaosException.ThrowExceptionForRC(_commandText, new TaosErrorResult() { Code = -1, Error = sendTask.Exception?.Message + "\n" + sendTask.Exception?.InnerException?.Message });
+                    packages.ForEach(p =>
+                    {
+                        p._tcs.SetException(ex);
+
+                    });
+                    //TaosException.ThrowExceptionForRC(_commandText, new TaosErrorResult() { Code = -2, Error = ex.Message + "\n" + ex.InnerException?.Message });
                 }
+
+
             }
-            catch (Exception ex)
+
+            private CombineCommandPackage(string _commandText, TaosRESTful _taosRESTful)
             {
-                TaosException.ThrowExceptionForRC(_commandText, new TaosErrorResult() { Code = -2, Error = ex.Message + "\n" + ex.InnerException?.Message });
+                _tcs = new TaskCompletionSource<TaosResult>();
+                IsInsertPackage = _commandText?.ToLower()?.StartsWith("insert ") ?? false;
+                taosRESTful = _taosRESTful;
+                ExeTask = _tcs.Task;
+                CreateTime = DateTime.Now;
+                CommandText = _commandText?.Trim();
             }
-            return result;
         }
 
         private static T JsonDeserialize<T>(string context)

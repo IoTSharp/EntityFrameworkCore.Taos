@@ -85,7 +85,6 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
                 {
                     tc.Open();
                     _exists = tc.DatabaseExists(Dependencies.Connection.DbConnection.Database);
-                    tc.Close();
                 }
             }
             catch (Exception)
@@ -110,7 +109,6 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
                     tc.Open();
                     tc.ChangeDatabase(Dependencies.Connection.DbConnection.Database);
                     count = tc.CreateCommand("SHOW TABLES").ExecuteReader().ToJson().Count();
-                    tc.Close();
                 }
             }
             catch (Exception)

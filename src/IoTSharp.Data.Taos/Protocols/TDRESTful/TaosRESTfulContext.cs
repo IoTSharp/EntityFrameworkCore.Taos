@@ -1,11 +1,15 @@
 ﻿using IoTSharp.Data.Taos.Driver;
+
 using Newtonsoft.Json.Linq;
+
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
+
 using TDengineDriver;
 
 namespace IoTSharp.Data.Taos.Protocols.TDRESTful
@@ -30,7 +34,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
             _meta = tr.column_meta;
             _data = tr.data;
             _data_index = -1;
-            Debug.Assert(tr.rows > 0 && _data != null && _data.Count > 0, "data is empty!");
+            //Debug.Assert(tr.rows > 0 && _data != null && _data.Count > 0, "data is empty!");
         }
 
         public bool HaveData => _data_index + 1 >= 0 && _data_index + 1 < _data?.Count;

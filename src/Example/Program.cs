@@ -58,6 +58,7 @@ namespace TaosADODemo
                 Username = "root",
                 Password = "astop.123",
                 Port = 6030,
+                ConnectionTimeout = 1000,
                 PoolSize = 200
             };
             builder.ConnectionTimeout = 1000;
@@ -576,7 +577,6 @@ namespace TaosADODemo
 
         private static void UseTaosEFCore(TaosConnectionStringBuilder builder)
         {
-
             //Example for  Entity Framework Core
             using (var context = new TaosContext(new DbContextOptionsBuilder()
                                                     .UseTaos(builder.ConnectionString).Options))
@@ -587,12 +587,8 @@ namespace TaosADODemo
                 //var f0 = from s in context.Sensor where s.pm25 > 0 select s;
                 //var farry = f0.ToList();
 
-                var tc = context.DeviceData.Count();
-                var addC = 0;
-                if (tc == 0)
-                {
-                    addC = 100;
-                }
+                var addC = 1000;
+       
                 for (int i = 0; i < addC; i++)
                 {
                     var rd = new Random();
@@ -607,10 +603,11 @@ namespace TaosADODemo
                         Data = null,
                         Id = Guid.NewGuid().ToString("N")
                     });
-                    Thread.Sleep(10);
                 }
                 Console.WriteLine("Saving");
-                context.SaveChanges();
+                var tt = context.SaveChangesAsync();
+                tt.Wait();
+
                 Console.WriteLine("");
                 Console.WriteLine("from s in context.sensor where s.pm25 > 0 select s ");
                 Console.WriteLine("");

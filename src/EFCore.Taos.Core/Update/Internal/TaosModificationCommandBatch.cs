@@ -1,19 +1,19 @@
 ﻿// Copyright (c)  Maikebing. All rights reserved.
 // Licensed under the MIT License, See License.txt in the project root for license information.
 
-using System.Linq;
 using System;
+using System.Data;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Utilities;
-using Microsoft.EntityFrameworkCore.Metadata;
-using System.Data;
-using System.Reflection;
 
 namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
 {
@@ -53,6 +53,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
         }
         public async override Task ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken = default)
         {
+            await Task.Yield();
             if (StoreCommand is null)
             {
                 throw new InvalidOperationException(RelationalStrings.ModificationCommandBatchNotComplete);
