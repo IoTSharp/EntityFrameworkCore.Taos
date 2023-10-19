@@ -587,7 +587,7 @@ namespace TaosADODemo
                 //var f0 = from s in context.Sensor where s.pm25 > 0 select s;
                 //var farry = f0.ToList();
 
-                var addC = 1000;
+                var addC = 1;
        
                 for (int i = 0; i < addC; i++)
                 {

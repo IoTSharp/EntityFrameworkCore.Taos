@@ -69,7 +69,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                         }
                     }
 
-                    commandBatches.AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount * 4).ForAll(batch =>
+                    commandBatches.AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount * 8).ForAll(batch =>
                     {
                         batch.Execute(connection);
                         Interlocked.Add(ref rowsAffected, batch.ModificationCommands.Count);
@@ -174,7 +174,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                             createdSavepoint = true;
                         }
                     }
-                    var degreeOfParallelism = Environment.ProcessorCount * 4;
+                    var degreeOfParallelism = Environment.ProcessorCount * 8;
                     var batchTasks = new List<Task>();
                     var bl = 1;
                     foreach (var batch in commandBatches)

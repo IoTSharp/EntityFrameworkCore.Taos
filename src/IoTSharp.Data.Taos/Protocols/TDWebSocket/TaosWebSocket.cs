@@ -25,11 +25,18 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
 
         public bool ChangeDatabase(string databaseName)
         {
-            Close(_builder);
-            _databaseName = databaseName;
-            _builder.DataBase = _databaseName;
-            var result = Open(_builder);
-            return result;
+            if (_builder.DataBase != databaseName)
+            {
+
+                Close(_builder);
+                _builder.DataBase = databaseName;
+                var result = Open(_builder);
+                return result;
+            }
+            else
+            {
+                return true;
+            }
         }
 
         public void Close(TaosConnectionStringBuilder connectionStringBuilder)

@@ -25,9 +25,11 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 
         public bool ChangeDatabase(string databaseName)
         {
-            _databaseName = databaseName;
-            _builder.DataBase = _databaseName;
-            //ResetClient(_builder);
+            if (_builder.DataBase != databaseName)
+            {
+                _builder.DataBase = databaseName;
+                //ResetClient(_builder);
+            }
             return true;
         }
 
@@ -147,6 +149,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                 Task.Run(() =>
                 {
                     var insertPackages = new List<CombineCommandPackage>();
+                    var insertAssistPackages = new List<CombineCommandPackage>();
                     while (true)
                     {
                         SpinWait.SpinUntil(() => packagesQueue.Count > 0 || (insertPackages != null && insertPackages.Count > 0));
@@ -156,7 +159,14 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 
                             if (package.IsInsertPackage)
                             {
-                                insertPackages.Add(package);
+                                if (insertPackages.Sum(s => s.CommandText?.Length ?? 0) + (package.CommandText?.Length ?? 0) < taosSqlMaxLength)
+                                {
+                                    insertPackages.Add(package);
+                                }
+                                else
+                                {
+                                    insertAssistPackages.Add(package);
+                                }
                             }
                             else
                             {
@@ -164,16 +174,24 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                             }
                         }
                         if (
-                            insertPackages != null &&
-                            insertPackages.Count > 0 &&
+                            insertAssistPackages.Count > 0 ||
                             (
-                                DateTime.Now - insertPackages[0].CreateTime > TimeSpan.FromMilliseconds(4) ||
-                                insertPackages.Sum(s => s.CommandText?.Length ?? 0) * 1.1 > taosSqlMaxLength
+                                insertPackages != null &&
+                                insertPackages.Count > 0 &&
+                                (
+                                    DateTime.Now - insertPackages[0].CreateTime > TimeSpan.FromMilliseconds(20)
+                                )
                             )
+
                            )
                         {
                             _ = CombineExecute(insertPackages);
                             insertPackages = new List<CombineCommandPackage>();
+                            if (insertAssistPackages.Count > 0)
+                            {
+                                insertPackages.AddRange(insertAssistPackages);
+                                insertAssistPackages.Clear();
+                            }
                         }
                     }
                 });
@@ -239,6 +257,8 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                     {
                         p._tcs.SetResult(result);
                     });
+                    packages.Clear();
+                    packages = null;
                 }
                 catch (Exception ex)
                 {
