@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 {
@@ -37,6 +38,8 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
         {
             //_client?.Dispose();
         }
+
+        private static Regex limitOffsetRegex = new Regex(@"(?!=\W)(limit|offset)\s*""(\d+)""", RegexOptions.IgnoreCase);
 
         public TaosDataReader ExecuteReader(CommandBehavior behavior, TaosCommand command)
         {
@@ -109,7 +112,12 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                         _commandText = _commandText.Replace(p.ParameterName, v);
                     });
                 }
+                if (_commandText.IndexOf("LIMIT") >= 0 || _commandText.IndexOf("OFFSET") >= 0)
+                {
+                    _commandText = limitOffsetRegex.Replace(_commandText, "$1 $2");
+                }
                 var tr = Execute(_commandText);
+
                 dataReader = new TaosDataReader(command, new TaosRESTfulContext(tr));
 
             }

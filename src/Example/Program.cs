@@ -15,6 +15,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.WebSockets;
+using System.Reflection.Metadata;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -87,7 +88,7 @@ namespace TaosADODemo
 
 
 #else
-             ExecSqlByNative(builder.UseNative());
+            ExecSqlByNative(builder.UseNative());
             UseTaosEFCore(builder.UseNative());
             ExecSqlByRESTFul(builder.UseRESTful());
             ExecSqlByStmt(builder.UseWebSocket());
@@ -584,11 +585,27 @@ namespace TaosADODemo
 
                 Console.WriteLine("EnsureCreated");
                 context.Database.EnsureCreated();
-                //var f0 = from s in context.Sensor where s.pm25 > 0 select s;
-                //var farry = f0.ToList();
+                var f0 = from s in context.DeviceData where s.Data > 0 select s;
+                var farry = f0.Skip(10).Take(100).ToList();
+
+
+                var d1 = new DeviceData
+                {
+                    SubTableName = "device_data_Iop0TCIP",
+                    Id = "1698922516665_Iop0TCIP_DownlinkSpeed",
+                    ProductCode = "EdgeGateway",
+                    DeviceCode = "Iop0TCIP",
+                    PropertyCode = "EdgeGateway_Prop_DownlinkSpeed",
+                    Data = null,
+                    Content = "728",
+                    Time = DateTime.Parse("2023-11-02T10:55:16.665Z")
+                };
+                context.DeviceData.Add(d1); ;
+                var t1 = context.SaveChangesAsync();
+
 
                 var addC = 1;
-       
+
                 for (int i = 0; i < addC; i++)
                 {
                     var rd = new Random();
