@@ -43,7 +43,7 @@ namespace TaosADODemo
         {
             //issue259_258();
             var IS_RUNNING_IN_CONTAINER = bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out bool _DOTNET_RUNNING_IN_CONTAINER) && _DOTNET_RUNNING_IN_CONTAINER;
-            var _dbhost = "172.16.0.189";// IS_RUNNING_IN_CONTAINER ? "taos" : System.Net.Dns.GetHostName();
+            var _dbhost = "172.16.0.192";// IS_RUNNING_IN_CONTAINER ? "taos" : System.Net.Dns.GetHostName();
             Console.WriteLine($"主机名:{_dbhost} 当前程序运行在{(IS_RUNNING_IN_CONTAINER ? "容器内" : "主机中")} ");
             Console.WriteLine($"CPU:{Environment.ProcessorCount} 主机名:{Environment.MachineName}");
             var p = new Ping();
@@ -59,10 +59,10 @@ namespace TaosADODemo
                 Username = "root",
                 Password = "astop.123",
                 Port = 6030,
-                ConnectionTimeout = 1000,
-                PoolSize = 200
+                ConnectionTimeout = 10000,
+                PoolSize = 20000
             };
-            builder.ConnectionTimeout = 1000;
+            builder.ConnectionTimeout = 10000;
             UseTaosEFCore(builder.UseRESTful());
 
             var builder_cloud = new TaosConnectionStringBuilder()
@@ -588,23 +588,26 @@ namespace TaosADODemo
                 var f0 = from s in context.DeviceData where s.Data > 0 select s;
                 var farry = f0.Skip(10).Take(100).ToList();
 
-
-                var d1 = new DeviceData
-                {
-                    SubTableName = "device_data_Iop0TCIP",
-                    Id = "1698922516665_Iop0TCIP_DownlinkSpeed",
-                    ProductCode = "EdgeGateway",
-                    DeviceCode = "Iop0TCIP",
-                    PropertyCode = "EdgeGateway_Prop_DownlinkSpeed",
-                    Data = null,
-                    Content = "728",
-                    Time = DateTime.Parse("2023-11-02T10:55:16.665Z")
-                };
-                context.DeviceData.Add(d1); ;
-                var t1 = context.SaveChangesAsync();
+                var f1 = (from s in context.DeviceData where s.Data == null select s).ToList();
 
 
-                var addC = 1;
+
+                //var d1 = new DeviceData
+                //{
+                //    SubTableName = "device_data_Iop0TCIP",
+                //    Id = "1698922516665_Iop0TCIP_DownlinkSpeed",
+                //    ProductCode = "EdgeGateway",
+                //    DeviceCode = "Iop0TCIP",
+                //    PropertyCode = "EdgeGateway_Prop_DownlinkSpeed",
+                //    Data = null,
+                //    Content = "728",
+                //    Time = DateTime.Parse("2023-11-02T10:55:16.665Z")
+                //};
+                //context.DeviceData.Add(d1); ;
+                //var t1 = context.SaveChangesAsync();
+
+
+                var addC = 100;
 
                 for (int i = 0; i < addC; i++)
                 {

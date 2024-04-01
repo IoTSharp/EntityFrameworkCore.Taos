@@ -174,26 +174,15 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                             createdSavepoint = true;
                         }
                     }
-                    var degreeOfParallelism = Environment.ProcessorCount * 8;
-                    var batchTasks = new List<Task>();
-                    var bl = 1;
+                    var batchTasks = new List<(Task ExecTask, ModificationCommandBatch Batch)>();
                     foreach (var batch in commandBatches)
                     {
-                        batchTasks.Where(w => w.IsCompleted).ToList().ForEach(b => batchTasks.Remove(b));
-                        if (batchTasks.Count > degreeOfParallelism)
-                        {
-                            await Task.Delay(2 * bl++);
-                        }
-                        else
-                        {
-                            bl = 1;
-                        }
-                        batchTasks.Add(batch.ExecuteAsync(connection));
+                        batchTasks.Add((batch.ExecuteAsync(connection), batch));
                     }
-                    Task.WaitAll(batchTasks.ToArray());
-                    foreach (var batch in commandBatches)
+                    foreach (var bt in batchTasks)
                     {
-                        Interlocked.Add(ref rowsAffected, batch.ModificationCommands.Count);
+                        await bt.ExecTask;
+                        Interlocked.Add(ref rowsAffected, bt.Batch.ModificationCommands.Count);
 
                     }
 

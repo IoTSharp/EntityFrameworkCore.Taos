@@ -20,4 +20,10 @@
     <ProjectReference Include="..\IoTSharp.Data.Taos\IoTSharp.Data.Taos.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="taos.cfg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

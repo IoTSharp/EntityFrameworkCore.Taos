@@ -162,7 +162,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                     {
                         SpinWait.SpinUntil(() => packagesQueue.Count > 0 || (insertPackages != null && insertPackages.Count > 0));
 
-                        if (packagesQueue.TryDequeue(out var package))
+                        while (packagesQueue.TryDequeue(out var package))
                         {
 
                             if (package.IsInsertPackage)
@@ -179,6 +179,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                             else
                             {
                                 _ = CombineExecute(new List<CombineCommandPackage> { package });
+                                break;
                             }
                         }
                         if (
@@ -237,7 +238,8 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                 using var _client = packages[0].taosRESTful.GetClient();
                 try
                 {
-                    var response = await _client.SendAsync(rest);
+
+                    var response = await _client.SendAsync(rest).ConfigureAwait(false);
 
                     context = await response.Content?.ReadAsStringAsync();
 

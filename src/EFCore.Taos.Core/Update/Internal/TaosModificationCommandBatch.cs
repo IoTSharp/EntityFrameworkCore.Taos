@@ -68,7 +68,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
                         null,
                         Dependencies.CurrentContext.Context,
                         Dependencies.Logger, CommandSource.SaveChanges),
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken);
 
                 await using var _ = dataReader.ConfigureAwait(false);
 
