@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Utilities;
@@ -20,7 +21,6 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
         public TaosQuerySqlGenerator(QuerySqlGeneratorDependencies dependencies)
             : base(dependencies)
         {
-
             _sqlGenerationHelper = dependencies.SqlGenerationHelper;
         }
         protected override string AliasSeparator => "";

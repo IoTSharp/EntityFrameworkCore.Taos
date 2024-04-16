@@ -5,6 +5,7 @@ using Example;
 using IoTSharp.Data.Taos;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 
 using Newtonsoft.Json.Linq;
 
@@ -585,6 +586,9 @@ namespace TaosADODemo
 
                 Console.WriteLine("EnsureCreated");
                 context.Database.EnsureCreated();
+                var cl = context.DeviceData.Where(w => w.Data > 0).ToList();
+                var cc0 = context.DeviceData.Where(w => 1 != 0).Count();
+                var cc = context.DeviceData.Where(w => 1 == 0).Count();
                 var f0 = from s in context.DeviceData where s.Data > 0 select s;
                 var farry = f0.Skip(10).Take(100).ToList();
 

@@ -20,6 +20,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Utilities;
 using Microsoft.EntityFrameworkCore.Metadata;
+using System.Linq;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection
@@ -68,6 +70,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IBatchExecutor, TaosBatchExecutor>()
                 .TryAdd<ICommandBatchPreparer, TaosCommandBatchPreparer>()
                 .TryAdd<IQueryContextFactory, TaosQueryContextFactory>()
+                .TryAdd<IQueryContextFactory, TaosQueryContextFactory>()
                 .TryAdd<IModelCustomizer, TaosModelCustomizer>()
                 .TryAdd<IRelationalCommandBuilderFactory, TaosEFCommandBuilderFactory>()
 
@@ -81,6 +84,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 .TryAddProviderSpecificServices(
                     b => b
+                    .TryAddScoped<IQueryProvider, TaosQueryProvider>()
                     .TryAddScoped<ITaosRelationalConnection, TaosRelationalConnection>()
                     .TryAddScoped<IRelationalCommandBuilder, TaosEFCommandBuilder>()//配置无效，未创建
                     .TryAddScoped<IRelationalCommand, TaosEFCommand>()//配置无效，未创建
