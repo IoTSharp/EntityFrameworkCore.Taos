@@ -60,7 +60,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
             Dependencies.Connection.Open();
 
             _rawSqlCommandBuilder
-                .Build($"create database {Dependencies.Connection.DbConnection.Database};")
+                .Build($"create database if not exists {Dependencies.Connection.DbConnection.Database} ;")
                 .ExecuteNonQuery(new RelationalCommandParameterObject(
                         Dependencies.Connection,
                         null,

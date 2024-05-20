@@ -44,7 +44,7 @@ namespace TaosADODemo
         {
             //issue259_258();
             var IS_RUNNING_IN_CONTAINER = bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out bool _DOTNET_RUNNING_IN_CONTAINER) && _DOTNET_RUNNING_IN_CONTAINER;
-            var _dbhost = "172.16.0.192";// IS_RUNNING_IN_CONTAINER ? "taos" : System.Net.Dns.GetHostName();
+            var _dbhost = "172.16.0.189";// IS_RUNNING_IN_CONTAINER ? "taos" : System.Net.Dns.GetHostName();
             Console.WriteLine($"主机名:{_dbhost} 当前程序运行在{(IS_RUNNING_IN_CONTAINER ? "容器内" : "主机中")} ");
             Console.WriteLine($"CPU:{Environment.ProcessorCount} 主机名:{Environment.MachineName}");
             var p = new Ping();
@@ -53,6 +53,7 @@ namespace TaosADODemo
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             DbProviderFactories.RegisterFactory("TDengine", TaosFactory.Instance);
             string database = "ntest";
+
             var builder = new TaosConnectionStringBuilder()
             {
                 DataSource = _dbhost,
@@ -596,38 +597,40 @@ namespace TaosADODemo
 
 
 
-                //var d1 = new DeviceData
-                //{
-                //    SubTableName = "device_data_Iop0TCIP",
-                //    Id = "1698922516665_Iop0TCIP_DownlinkSpeed",
-                //    ProductCode = "EdgeGateway",
-                //    DeviceCode = "Iop0TCIP",
-                //    PropertyCode = "EdgeGateway_Prop_DownlinkSpeed",
-                //    Data = null,
-                //    Content = "728",
-                //    Time = DateTime.Parse("2023-11-02T10:55:16.665Z")
-                //};
-                //context.DeviceData.Add(d1); ;
-                //var t1 = context.SaveChangesAsync();
-
-
                 var addC = 100;
 
+                //for (int i = 0; i < addC; i++)
+                //{
+                //    var rd = new Random();
+                //    context.DeviceData.Add(new DeviceData()
+                //    {
+                //        Time = DateTime.Now.AddMilliseconds(i + 10),
+                //        ProductCode = $"productCode{i}",
+                //        DeviceCode = $"deviceCode{i}#Test",
+                //        PropertyCode = $"propertyCode#{i}",
+                //        SubTableName = $"tableName{i}",
+                //        Content = rd.Next(0, 1000).ToString(),
+                //        Data = null
+                //    });
+                //}
+                var ts = DateTimeOffset.Now;
                 for (int i = 0; i < addC; i++)
                 {
                     var rd = new Random();
                     context.DeviceData.Add(new DeviceData()
                     {
-                        Time = DateTime.Now.AddMilliseconds(i + 10),
-                        ProductCode = $"productCode{i}",
-                        DeviceCode = $"deviceCode{i}#Test",
-                        PropertyCode = $"propertyCode#{i}",
-                        SubTableName = $"tableName{i}",
-                        Content = rd.Next(0, 1000).ToString(),
+                        Identifier = $"{ts.AddMilliseconds(100 * i).ToUnixTimeSeconds()}_cw126_t2thermoCamera-p-pwd{i}",
+                        SubTableName = $"device_data_cw126_pwd{i}",
+                        ProductCode = "T2ThermoCamera",
+                        DeviceCode = "cw126",
+                        PropertyCode = $"t2thermoCamera-p-pwd{i}",
+                        Content = i + "",
                         Data = null,
-                        Id = Guid.NewGuid().ToString("N")
+                        Time = ts.AddMilliseconds(100 * i).UtcDateTime
                     });
                 }
+
+
                 Console.WriteLine("Saving");
                 var tt = context.SaveChangesAsync();
                 tt.Wait();

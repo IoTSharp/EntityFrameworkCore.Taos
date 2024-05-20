@@ -37,30 +37,25 @@ namespace TaosADODemo
         public double degree { get; set; }
     }
 
-
     [Taos("DeviceData", true)]
     public class DeviceData
     {
-        [TaosColumn("stb", TaosDataType.NCHAR, 50, isTableName: true)]
+        [TaosColumn("stb", TaosDataType.NCHAR, 100, isTableName: true)]
         public string SubTableName { get; set; }
         [TaosColumn("id", TaosDataType.VARCHAR, 100)]
-        public string Id { get; set; }
-
+        public string Identifier { get; set; }
         [TaosColumn("product", TaosDataType.NCHAR, 100, true)]
         public string ProductCode { get; internal set; }
-
         [TaosColumn("device", TaosDataType.NCHAR, 100, true)]
         public string DeviceCode { get; set; }
-
         [TaosColumn("property", TaosDataType.NCHAR, 100, true)]
         public string PropertyCode { get; set; }
-
-        [TaosColumn("v", TaosDataType.VARCHAR, 100)]
+        [TaosColumn("v", TaosDataType.DOUBLE, 100)]
         public double? Data { get; set; }
         /// <summary>
         /// 用于存储非数值内容
         /// </summary>
-        [TaosColumn("cxt", TaosDataType.NCHAR, 100)]
+        [TaosColumn("cxt", TaosDataType.NCHAR, 500)]
         public string Content { get; set; }
         /// <summary>
         /// 必须utc 时间
@@ -68,6 +63,8 @@ namespace TaosADODemo
         [TaosColumn("ts", TaosDataType.TIMESTAMP)]
         public DateTime Time { get; set; }
     }
+
+
     public class TaosContext : DbContext
     {
         public TaosContext(DbContextOptions options) : base(options)
