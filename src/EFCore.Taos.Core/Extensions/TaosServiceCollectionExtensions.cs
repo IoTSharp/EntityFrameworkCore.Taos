@@ -70,7 +70,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IBatchExecutor, TaosBatchExecutor>()
                 .TryAdd<ICommandBatchPreparer, TaosCommandBatchPreparer>()
                 .TryAdd<IQueryContextFactory, TaosQueryContextFactory>()
-                .TryAdd<IQueryContextFactory, TaosQueryContextFactory>()
                 .TryAdd<IModelCustomizer, TaosModelCustomizer>()
                 .TryAdd<IRelationalCommandBuilderFactory, TaosEFCommandBuilderFactory>()
 

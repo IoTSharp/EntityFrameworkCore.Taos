@@ -188,14 +188,14 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                                 insertPackages != null &&
                                 insertPackages.Count > 0 &&
                                 (
-                                    DateTime.Now - insertPackages[0].CreateTime > TimeSpan.FromMilliseconds(20)
+                                    DateTime.Now - insertPackages[0].CreateTime > TimeSpan.FromMilliseconds(100)
                                 )
                             )
 
                            )
                         {
                             _ = CombineExecute(insertPackages);
-                            insertPackages = new List<CombineCommandPackage>();
+                            insertPackages.Clear();
                             if (insertAssistPackages.Count > 0)
                             {
                                 insertPackages.AddRange(insertAssistPackages);
@@ -214,8 +214,9 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
             }
 
 
-            private async static Task CombineExecute(List<CombineCommandPackage> packages)
+            private async static Task CombineExecute(List<CombineCommandPackage> pgs)
             {
+                var packages = new List<CombineCommandPackage>(pgs);
                 if (packages == null || packages.Count == 0) return;
                 //聚合insert 语句
 
@@ -239,7 +240,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                 try
                 {
 
-                    var response = await _client.SendAsync(rest).ConfigureAwait(false);
+                    var response = await _client.SendAsync(rest).ConfigureAwait(true);
 
                     context = await response.Content?.ReadAsStringAsync();
 

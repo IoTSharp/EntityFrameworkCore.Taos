@@ -69,11 +69,17 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                         }
                     }
 
-                    commandBatches.AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount * 8).ForAll(batch =>
+                    commandBatches.AsParallel().WithDegreeOfParallelism(8).ForAll(batch =>
                     {
                         batch.Execute(connection);
                         Interlocked.Add(ref rowsAffected, batch.ModificationCommands.Count);
                     });
+
+                    foreach (var batch in commandBatches)
+                    {
+
+                    }
+
 
                     if (beganTransaction)
                     {
@@ -174,17 +180,19 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                             createdSavepoint = true;
                         }
                     }
-                    var batchTasks = new List<(Task ExecTask, ModificationCommandBatch Batch)>();
+                    // var batchTasks = new List<(Task ExecTask, ModificationCommandBatch Batch)>();
                     foreach (var batch in commandBatches)
                     {
-                        batchTasks.Add((batch.ExecuteAsync(connection), batch));
+                        await batch.ExecuteAsync(connection);
+                        rowsAffected += batch.ModificationCommands.Count;
+                        //batchTasks.Add((batch.ExecuteAsync(connection), batch));
                     }
-                    foreach (var bt in batchTasks)
-                    {
-                        await bt.ExecTask;
-                        Interlocked.Add(ref rowsAffected, bt.Batch.ModificationCommands.Count);
+                    //foreach (var bt in batchTasks)
+                    //{
+                    //    await bt.ExecTask;
+                    //    Interlocked.Add(ref rowsAffected, bt.Batch.ModificationCommands.Count);
 
-                    }
+                    //}
 
                     if (beganTransaction)
                     {
