@@ -53,7 +53,6 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
         }
         public async override Task ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken = default)
         {
-            await Task.Yield();
             if (StoreCommand is null)
             {
                 throw new InvalidOperationException(RelationalStrings.ModificationCommandBatchNotComplete);

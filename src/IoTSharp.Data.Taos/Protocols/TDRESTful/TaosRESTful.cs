@@ -174,6 +174,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                                 else
                                 {
                                     insertAssistPackages.Add(package);
+                                    break;
                                 }
                             }
                             else
@@ -186,10 +187,10 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
                             insertAssistPackages.Count > 0 ||
                             (
                                 insertPackages != null &&
-                                insertPackages.Count > 0 &&
-                                (
-                                    DateTime.Now - insertPackages[0].CreateTime > TimeSpan.FromMilliseconds(100)
-                                )
+                                insertPackages.Count > 0 //&&
+                                                         //(
+                                                         //    DateTime.Now - insertPackages[0].CreateTime > TimeSpan.FromMilliseconds(250)
+                                                         //)
                             )
 
                            )

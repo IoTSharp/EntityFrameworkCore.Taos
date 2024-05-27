@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.WebSockets;
@@ -597,7 +598,8 @@ namespace TaosADODemo
 
 
 
-                var addC = 100;
+
+                var addC = 1000;
 
                 //for (int i = 0; i < addC; i++)
                 //{
@@ -630,10 +632,22 @@ namespace TaosADODemo
                     });
                 }
 
-
+                var saveSync = true;
+                var sw = Stopwatch.StartNew();
                 Console.WriteLine("Saving");
-                var tt = context.SaveChangesAsync();
-                tt.Wait();
+                if (saveSync)
+                {
+                    var tt = context.SaveChangesAsync();
+                    tt.Wait();
+                }
+                else
+                {
+                    context.SaveChanges();
+                }
+
+                sw.Stop();
+                Console.WriteLine($"Save Use:{sw.Elapsed}");
+
 
                 Console.WriteLine("");
                 Console.WriteLine("from s in context.sensor where s.pm25 > 0 select s ");

@@ -69,7 +69,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                         }
                     }
 
-                    commandBatches.AsParallel().WithDegreeOfParallelism(8).ForAll(batch =>
+                    commandBatches.AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount).ForAll(batch =>
                     {
                         batch.Execute(connection);
                         Interlocked.Add(ref rowsAffected, batch.ModificationCommands.Count);
@@ -144,6 +144,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
             IRelationalConnection connection,
             CancellationToken cancellationToken = default)
         {
+            await Task.Yield();
             var cmdBatches = commandBatches;
             if (commandBatches.Any())
             {
@@ -180,19 +181,14 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                             createdSavepoint = true;
                         }
                     }
-                    // var batchTasks = new List<(Task ExecTask, ModificationCommandBatch Batch)>();
-                    foreach (var batch in commandBatches)
-                    {
-                        await batch.ExecuteAsync(connection);
-                        rowsAffected += batch.ModificationCommands.Count;
-                        //batchTasks.Add((batch.ExecuteAsync(connection), batch));
-                    }
-                    //foreach (var bt in batchTasks)
-                    //{
-                    //    await bt.ExecTask;
-                    //    Interlocked.Add(ref rowsAffected, bt.Batch.ModificationCommands.Count);
 
-                    //}
+                    commandBatches.AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount).ForAll(async batch =>
+                    {
+                        await batch.ExecuteAsync(connection).ConfigureAwait(false);
+                        Interlocked.Add(ref rowsAffected, batch.ModificationCommands.Count);
+
+                    });
+
 
                     if (beganTransaction)
                     {
