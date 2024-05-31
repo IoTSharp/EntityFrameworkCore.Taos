@@ -106,5 +106,19 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
         {
             return base.VisitSqlConstant(sqlConstantExpression);
         }
+        protected override Expression VisitLike(LikeExpression likeExpression)
+        {
+            Visit(likeExpression.Match);
+            this.Sql.Append(" LIKE ");
+            Visit(likeExpression.Pattern);
+
+            if (likeExpression.EscapeChar != null)
+            {
+                this.Sql.Append(" ESCAPE ");
+                Visit(likeExpression.EscapeChar);
+            }
+
+            return likeExpression;
+        }
     }
 }

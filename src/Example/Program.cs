@@ -588,6 +588,10 @@ namespace TaosADODemo
 
                 Console.WriteLine("EnsureCreated");
                 context.Database.EnsureCreated();
+                var k = "Consigne+3";
+                var cm0 = context.DeviceData.Where(w => w.PropertyCode.Contains(Tx(k))).ToList();
+                var cm = context.DeviceData.Where(w => w.PropertyCode.Contains(k)).ToList();
+                var cm1 = context.DeviceData.Where(w => w.PropertyCode.Contains("Consigne+3")).ToList();
                 var cl = context.DeviceData.Where(w => w.Data > 0).ToList();
                 var cc0 = context.DeviceData.Where(w => 1 != 0).Count();
                 var cc = context.DeviceData.Where(w => 1 == 0).Count();
@@ -664,6 +668,11 @@ namespace TaosADODemo
                 }
                 context.Database.EnsureDeleted();
             }
+        }
+
+        private static string Tx(string v)
+        {
+            return v.Trim();
         }
 
         private static void BulkInsertWithJson_BuildJson(TaosConnection connection)

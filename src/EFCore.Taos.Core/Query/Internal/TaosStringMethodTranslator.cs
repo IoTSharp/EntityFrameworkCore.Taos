@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
@@ -71,6 +72,9 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
 
         private static readonly MethodInfo _endsWithMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.EndsWith), new[] { typeof(string) });
+
+        
+
 
         private readonly TaosSqlExpressionFactory _sqlExpressionFactory;
         private const char LikeEscapeChar = '\\';
@@ -177,12 +181,13 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                 instance = _sqlExpressionFactory.ApplyTypeMapping(instance, stringTypeMapping);
                 pattern = _sqlExpressionFactory.ApplyTypeMapping(pattern, stringTypeMapping);
 
-                return _sqlExpressionFactory.Match(instance, pattern, stringTypeMapping);
-                //return _sqlExpressionFactory.OrElse(
-                //    _sqlExpressionFactory.Equal(
-                //        pattern,
-                //        _sqlExpressionFactory.Constant(string.Empty, stringTypeMapping)),
-                //    _sqlExpressionFactory.Match(instance, pattern, stringTypeMapping));
+
+                //return _sqlExpressionFactory.Like(instance, pattern);
+                return _sqlExpressionFactory.OrElse(
+                    _sqlExpressionFactory.Equal(
+                        pattern,
+                        _sqlExpressionFactory.Constant(string.Empty, stringTypeMapping)),
+                    _sqlExpressionFactory.Like(instance, pattern));
             }
 
             if (_startsWithMethodInfo.Equals(method))
@@ -196,6 +201,66 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
             }
 
             return null;
+        }
+
+
+        // See https://www.sqlite.org/lang_expr.html
+        private static bool IsLikeWildChar(char c)
+            => c is '%' or '_';
+
+        private static string EscapeLikePattern(string pattern)
+        {
+            var builder = new StringBuilder();
+            for (var i = 0; i < pattern.Length; i++)
+            {
+                var c = pattern[i];
+                if (IsLikeWildChar(c)
+                    || c == LikeEscapeChar)
+                {
+                    builder.Append(LikeEscapeChar);
+                }
+
+                builder.Append(c);
+            }
+
+            return builder.ToString();
+        }
+
+        private static string ToLiteral(string input, bool addQuote = false)
+        {
+            StringBuilder literal = new StringBuilder(input.Length + 2);
+            if (addQuote) literal.Append("\"");
+            foreach (var c in input)
+            {
+                switch (c)
+                {
+                    case '\"': literal.Append("\\\""); break;
+                    case '\\': literal.Append(@"\\"); break;
+                    case '\0': literal.Append(@"\0"); break;
+                    case '\a': literal.Append(@"\a"); break;
+                    case '\b': literal.Append(@"\b"); break;
+                    case '\f': literal.Append(@"\f"); break;
+                    case '\n': literal.Append(@"\n"); break;
+                    case '\r': literal.Append(@"\r"); break;
+                    case '\t': literal.Append(@"\t"); break;
+                    case '\v': literal.Append(@"\v"); break;
+                    default:
+                        // ASCII printable character
+                        if (c >= 0x20 && c <= 0x7e)
+                        {
+                            literal.Append(c);
+                            // As UTF16 escaped character
+                        }
+                        else
+                        {
+                            literal.Append(@"\u");
+                            literal.Append(((int)c).ToString("x4"));
+                        }
+                        break;
+                }
+            }
+            if (addQuote) literal.Append("\"");
+            return literal.ToString();
         }
 
         private SqlExpression TranslateStartsEndsWith(SqlExpression instance, SqlExpression pattern, bool startsWith)
@@ -280,26 +345,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                     _sqlExpressionFactory.Constant(string.Empty)));
         }
 
-        // See https://www.Taos.org/lang_expr.html
-        private bool IsLikeWildChar(char c) => c == '%' || c == '_';
 
-        private string EscapeLikePattern(string pattern)
-        {
-            var builder = new StringBuilder();
-            for (var i = 0; i < pattern.Length; i++)
-            {
-                var c = pattern[i];
-                if (IsLikeWildChar(c)
-                    || c == LikeEscapeChar)
-                {
-                    builder.Append(LikeEscapeChar);
-                }
-
-                builder.Append(c);
-            }
-
-            return builder.ToString();
-        }
 
         private SqlExpression ProcessTrimMethod(SqlExpression instance, IReadOnlyList<SqlExpression> arguments, string functionName)
         {
