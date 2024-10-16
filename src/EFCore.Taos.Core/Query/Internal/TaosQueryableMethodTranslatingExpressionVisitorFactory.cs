@@ -23,5 +23,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
 
         public QueryableMethodTranslatingExpressionVisitor Create(QueryCompilationContext queryCompilationContext)
           => new TaosQueryableMethodTranslatingExpressionVisitor(_dependencies, _relationalDependencies, queryCompilationContext);
+
+
     }
 }
