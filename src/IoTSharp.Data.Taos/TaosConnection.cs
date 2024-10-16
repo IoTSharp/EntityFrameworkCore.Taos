@@ -29,24 +29,26 @@ namespace IoTSharp.Data.Taos
     /// </summary>
     public partial class TaosConnection : DbConnection
     {
- 
+
         private readonly IList<WeakReference<TaosCommand>> _commands = new List<WeakReference<TaosCommand>>();
 
         private string _connectionString;
         private ConnectionState _state;
         internal ITaosProtocol taos;
+        private bool disposed = false;
 
-        public TaosConnection():this( string.Empty)
+
+        public TaosConnection() : this(string.Empty)
         {
 
         }
-        public TaosConnection(string connectionString) : this(connectionString,string.Empty)
+        public TaosConnection(string connectionString) : this(connectionString, string.Empty)
         {
 
         }
-        public TaosConnection(string connectionString, string configdir):this(connectionString,configdir,60,string.Empty,string.Empty,string.Empty)
+        public TaosConnection(string connectionString, string configdir) : this(connectionString, configdir, 60, string.Empty, string.Empty, string.Empty)
         {
-          
+
         }
 
         /// <summary>
@@ -58,7 +60,7 @@ namespace IoTSharp.Data.Taos
         /// <param name="locale">区域 'en_US.UTF-8'</param>
         /// <param name="charset">字符集 'UTF-8'</param>
         /// <param name="timezone">时区 例如  'Asia/Shanghai' </param>
-        public TaosConnection(string connectionString,string configdir,int  shell_activity_timer,string locale,string charset, string timezone)
+        public TaosConnection(string connectionString, string configdir, int shell_activity_timer, string locale, string charset, string timezone)
         {
             if (!string.IsNullOrEmpty(connectionString) && !string.IsNullOrWhiteSpace(connectionString))
             {
@@ -142,7 +144,7 @@ namespace IoTSharp.Data.Taos
             }
         }
         string _client_version = string.Empty;
-        public   string ClientVersion
+        public string ClientVersion
         {
             get
             {
@@ -174,7 +176,7 @@ namespace IoTSharp.Data.Taos
         protected internal virtual TaosTransaction Transaction { get; set; }
 
         public override string Database => ConnectionStringBuilder?.DataBase;
-        public  int  PoolSize => ConnectionStringBuilder?.PoolSize??0;
+        public int PoolSize => ConnectionStringBuilder?.PoolSize ?? 0;
 
 
         private void SetState(ConnectionState value)
@@ -198,6 +200,7 @@ namespace IoTSharp.Data.Taos
             {
                 return;
             }
+
             var result = taos.Open(ConnectionStringBuilder);
 
             if (result)
@@ -212,21 +215,19 @@ namespace IoTSharp.Data.Taos
         /// </summary>
         public override void Close()
         {
+
+            //Debug.Write($"TaosConnection {GetHashCode()} Close");
+
             if (State != ConnectionState.Closed)
             {
                 taos.Close(ConnectionStringBuilder);
             }
             Transaction?.Dispose();
             _nowdatabase = string.Empty;
-            foreach (var reference in _commands)
-            {
-                if (reference.TryGetTarget(out var command))
-                {
-                    command.Dispose();
-                }
-            }
-            _commands.Clear();
+
             SetState(ConnectionState.Closed);
+
+
         }
 
         /// <summary>
@@ -237,11 +238,28 @@ namespace IoTSharp.Data.Taos
         /// </param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (!disposed)
             {
-                Close();
+                if (disposing)
+                {
+                    Close();
+
+                    if (_commands != null && _commands.Count > 0)
+                    {
+                        foreach (var reference in _commands)
+                        {
+                            if (reference.TryGetTarget(out var command))
+                            {
+                                command.Dispose();
+                            }
+                        }
+
+                        _commands.Clear();
+                    }
+                }
+                base.Dispose(disposing);
+                disposed = true;
             }
-            base.Dispose(disposing);
         }
 
         /// <summary>
@@ -344,7 +362,7 @@ namespace IoTSharp.Data.Taos
         }
         internal string _nowdatabase = string.Empty;
 
-        internal bool SelectedDataBase => _nowdatabase != string.Empty ;
+        internal bool SelectedDataBase => _nowdatabase != string.Empty;
 
 
         /// <summary>
@@ -368,7 +386,7 @@ namespace IoTSharp.Data.Taos
         public bool DatabaseExists(string databaseName)
         {
             var _sql = "SHOW DATABASES";
-            var ds =  CreateCommand(_sql).ExecuteReader().ToObject<DatabaseSchema>();
+            var ds = CreateCommand(_sql).ExecuteReader().ToObject<DatabaseSchema>();
             return (bool)(ds?.Any(d => d.name == databaseName));
         }
         /// <summary>
@@ -393,7 +411,7 @@ namespace IoTSharp.Data.Taos
         /// <returns>返回数量</returns>
         public int ExecuteBulkInsert(RecordData data)
         {
-            return ExecuteBulkInsert(new RecordData[] {data }, TDengineSchemalessPrecision.TSDB_SML_TIMESTAMP_NOT_CONFIGURED, null);
+            return ExecuteBulkInsert(new RecordData[] { data }, TDengineSchemalessPrecision.TSDB_SML_TIMESTAMP_NOT_CONFIGURED, null);
         }
         /// <summary>
         /// 使用Schemales的 TSDB_SML_LINE_PROTOCOL 将 <paramref name="data"/>插入TDengine
@@ -408,9 +426,9 @@ namespace IoTSharp.Data.Taos
         /// </summary>
         /// <param name="data">使用InfluxDB的RecordData方式合成数据</param>
         /// <returns>返回数量</returns>
-        public int ExecuteBulkInsert(IEnumerable<RecordData> data,RecordSettings settings)
+        public int ExecuteBulkInsert(IEnumerable<RecordData> data, RecordSettings settings)
         {
-            return ExecuteBulkInsert(data,  TDengineSchemalessPrecision.TSDB_SML_TIMESTAMP_NOT_CONFIGURED, settings);
+            return ExecuteBulkInsert(data, TDengineSchemalessPrecision.TSDB_SML_TIMESTAMP_NOT_CONFIGURED, settings);
         }
         /// <summary>
         /// 使用Schemales的 TSDB_SML_LINE_PROTOCOL 将 <paramref name="data"/>插入TDengine
@@ -508,7 +526,7 @@ namespace IoTSharp.Data.Taos
             return taos.ExecuteBulkInsert(array, TDengineSchemalessProtocol.TSDB_SML_TELNET_PROTOCOL, precision);
         }
 
-     
+
 
 
 

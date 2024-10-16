@@ -1,6 +1,7 @@
 ﻿using IoTSharp.Data.Taos;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
@@ -14,7 +15,7 @@ namespace IoTSharp.Data.Taos.Protocols
 {
     internal class TaosNative : ITaosProtocol
     {
-        private static readonly Dictionary<string, ConcurrentTaosQueue> g_pool = new Dictionary<string, ConcurrentTaosQueue>();
+        private static readonly ConcurrentDictionary<string, ConcurrentTaosQueue> g_pool = new ConcurrentDictionary<string, ConcurrentTaosQueue>();
         private ConcurrentTaosQueue _queue = null;
         private static bool _dll_isloaded = false;
         private readonly DateTime _dt1970;
@@ -117,24 +118,22 @@ namespace IoTSharp.Data.Taos.Protocols
         public bool Open(TaosConnectionStringBuilder builder)
         {
             var _connectionString = builder.ConnectionString;
-            if (!g_pool.ContainsKey(_connectionString))
+            lock (g_pool)
             {
-                g_pool.Add(_connectionString, new ConcurrentTaosQueue() { Timeout = builder.ConnectionTimeout });
-            }
-            _queue = g_pool[_connectionString];
-            _queue.AddRef();
-
-            for (int i = 0; i < builder.PoolSize + 1; i++)
-            {
-                var c = TDengine.Connect(builder.DataSource, builder.Username, builder.Password, "", (short)builder.Port);
-                if (c != IntPtr.Zero)
+                _queue = g_pool.GetOrAdd(_connectionString, new ConcurrentTaosQueue() { Timeout = builder.ConnectionTimeout });
+                _queue.AddRef();
+                for (int i = 0; i < builder.PoolSize + 1; i++)
                 {
-                    _queue.Return(c);
+                    var c = TDengine.Connect(builder.DataSource, builder.Username, builder.Password, "", (short)builder.Port);
+                    if (c != IntPtr.Zero)
+                    {
+                        _queue.Return(c);
+                    }
                 }
-            }
-            if (_queue.TaosQueue.IsEmpty)
-            {
-                TaosException.ThrowExceptionForRC(new TaosErrorResult() { Code = -1, Error = "Can't open  connection." });
+                if (_queue.TaosQueue.IsEmpty)
+                {
+                    TaosException.ThrowExceptionForRC(new TaosErrorResult() { Code = -1, Error = "Can't open  connection." });
+                }
             }
             return true;
         }
@@ -142,27 +141,30 @@ namespace IoTSharp.Data.Taos.Protocols
         public void Close(TaosConnectionStringBuilder builder)
         {
             var _connectionString = builder.ConnectionString;
-            _queue.RemoveRef();
-            if (_queue.GetRef() == 0)
+            lock (g_pool)
             {
-                for (int i = 0; i < _queue.TaosQueue.Count; i++)
+                _queue.RemoveRef();
+                if (_queue.GetRef() == 0)
                 {
-                    try
+                    for (int i = 0; i < _queue.TaosQueue.Count; i++)
                     {
-                        var tk = _queue.Take();
-                        if (tk != IntPtr.Zero)
+                        try
                         {
-                            TDengine.Close(tk);
+                            var tk = _queue.Take();
+                            if (tk != IntPtr.Zero)
+                            {
+                                TDengine.Close(tk);
+                            }
+                        }
+                        catch (Exception)
+                        {
+
+
                         }
                     }
-                    catch (Exception)
-                    {
-
-                     
-                    }
+                    _queue = null;
+                    g_pool.TryRemove(_connectionString, out var va1l);
                 }
-                _queue = null;
-                g_pool.Remove(_connectionString);
             }
         }
 

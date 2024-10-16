@@ -60,7 +60,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
             Dependencies.Connection.Open();
 
             _rawSqlCommandBuilder
-                .Build($"create database {Dependencies.Connection.DbConnection.Database};")
+                .Build($"create database if not exists {Dependencies.Connection.DbConnection.Database} ;")
                 .ExecuteNonQuery(new RelationalCommandParameterObject(
                         Dependencies.Connection,
                         null,
@@ -85,7 +85,6 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
                 {
                     tc.Open();
                     _exists = tc.DatabaseExists(Dependencies.Connection.DbConnection.Database);
-                    tc.Close();
                 }
             }
             catch (Exception)
@@ -110,7 +109,6 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
                     tc.Open();
                     tc.ChangeDatabase(Dependencies.Connection.DbConnection.Database);
                     count = tc.CreateCommand("SHOW TABLES").ExecuteReader().ToJson().Count();
-                    tc.Close();
                 }
             }
             catch (Exception)

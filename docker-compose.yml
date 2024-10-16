@@ -14,9 +14,11 @@ services:
       - taos-network
 
   taos:
-    image: tdengine/tdengine:3.0.5.1
+    image: tdengine/tdengine:3.2.1.0
     restart: always
     hostname: taos
+    volumes:
+        - "./taos.cfg:/etc/taos/taos.cfg"
     ports:
       - 6030:6030
       - 6035:6035
