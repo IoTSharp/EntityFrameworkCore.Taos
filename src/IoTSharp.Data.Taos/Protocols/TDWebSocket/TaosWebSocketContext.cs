@@ -1,6 +1,8 @@
 ﻿using IoTSharp.Data.Taos.Driver;
 using IoTSharp.Data.Taos.Protocols.TDRESTful;
+
 using Newtonsoft.Json.Linq;
+
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -9,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using TDengineDriver;
 
 namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
@@ -40,12 +43,12 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
                     blockDecode(tr.data);
                 }
                 _rows = tr.rows;
-                if (numOfRows!=tr.rows)
+                if (numOfRows != tr.rows)
                 {
                     TaosException.ThrowExceptionForRC(new TaosErrorResult() { Code = -1, Error = "数据解析格式异常。" });
                 }
             }
-            else if (tr.StmtExec!=null)//insert 
+            else if (tr.StmtExec != null)//insert 
             {
                 AffectRows = tr.StmtExec.affected;
             }
@@ -68,7 +71,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
             ptr = Marshal.AllocHGlobal(data.Length);
             Marshal.Copy(data, 0, ptr, data.Length);
             int pStart = 0;
-            
+
             var _block_timing = Marshal.ReadInt64(ptr, pStart);
             Debug.WriteLine($"耗时:{TimeSpan.FromMilliseconds(_block_timing)}");
             pStart += sizeof(Int64);
@@ -129,18 +132,18 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
             }
 
             int[] colLen = new int[numOfCols];
-            Marshal.Copy(IntPtr.Add(ptr, pStart),  colLen,0, numOfCols);
+            Marshal.Copy(IntPtr.Add(ptr, pStart), colLen, 0, numOfCols);
             pStart += sizeof(Int32) * numOfCols;
 
             for (int i = 0; i < numOfCols; ++i)
             {
-               // colLen[i] = BitConverter.ToInt32(BitConverter.GetBytes(colLen[i]).Reverse().ToArray(),0);
-                 Debug.Assert (colLen[i] >= 0);
+                // colLen[i] = BitConverter.ToInt32(BitConverter.GetBytes(colLen[i]).Reverse().ToArray(),0);
+                Debug.Assert(colLen[i] >= 0);
                 SColumnInfoData pColInfoData = lstpColInfoData[i];
                 if (pColInfoData.info.IS_VAR_DATA_TYPE())
                 {
                     pColInfoData.varmeta.offset = new Int32[numOfRows];
-                    Marshal.Copy(IntPtr.Add( ptr,pStart),pColInfoData.varmeta.offset, 0,  numOfRows);
+                    Marshal.Copy(IntPtr.Add(ptr, pStart), pColInfoData.varmeta.offset, 0, numOfRows);
                     pStart += sizeof(Int32) * numOfRows;
                     if (colLen[i] > 0 && pColInfoData.varmeta.allocLen < colLen[i])
                     {
@@ -153,7 +156,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
                     int mlen = BitmapLen(numOfRows);
                     pColInfoData.nullbitmap = new byte[mlen];
                     Marshal.Copy(IntPtr.Add(ptr, pStart), pColInfoData.nullbitmap, 0, mlen);
-                   pStart += mlen;
+                    pStart += mlen;
                 }
 
                 if (colLen[i] > 0)
@@ -184,24 +187,24 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
         public byte GetByte(int ordinal)
         {
             var dt = GetValuePtr(ordinal);
-            return  Marshal.ReadByte(dt.data);
+            return Marshal.ReadByte(dt.data);
         }
 
         public long GetBytes(int ordinal, long dataOffset, byte[] buffer, int bufferOffset, int length)
         {
             var dt = GetValuePtr(ordinal);
-             if (dataOffset>=dt.len ||  dataOffset+bufferOffset+length>dt.len ||  bufferOffset>dt.len )
+            if (dataOffset >= dt.len || dataOffset + bufferOffset + length > dt.len || bufferOffset > dt.len)
             {
                 throw new IndexOutOfRangeException($"Data Len:{dt.len}, but dataOffset={dataOffset},bufferOffset={bufferOffset} and length={length}");
             }
-            Marshal.Copy(IntPtr.Add( dt.data, (int)dataOffset), buffer, bufferOffset, length);
+            Marshal.Copy(IntPtr.Add(dt.data, (int)dataOffset), buffer, bufferOffset, length);
             return buffer.Length;
         }
 
         public DateTime GetDataTime(int ordinal)
         {
             var dt = GetValuePtr(ordinal);
-            return  GetDateTimeFrom(dt.data,dt.precision);
+            return GetDateTimeFrom(dt.data, dt.precision);
         }
 
         public int GetErrorNo()
@@ -215,11 +218,11 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
             return info.IS_VAR_DATA_TYPE() ? info.bytes - 2 : info.bytes;
         }
 
-     
-    
+
+
         public Type GetFieldType(int ordinal)
         {
-            var tx= (TDengineDataType)lstpColInfoData[ordinal].info.type;
+            var tx = (TDengineDataType)lstpColInfoData[ordinal].info.type;
             return tx.ToCrlType();
         }
 
@@ -265,16 +268,16 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
                     return TimeSpan.FromTicks(val * 10000);
             }
         }
-      
+
 
         public object GetValue(int ordinal)
         {
             object result = null;
             if (ordinal >= 0 && ordinal < FieldCount)
             {
-                var dr=  GetValuePtr(ordinal);
+                var dr = GetValuePtr(ordinal);
                 IntPtr data = dr.data;
-                short len=dr.len;
+                short len = dr.len;
                 if (data != IntPtr.Zero)
                 {
                     switch (dr.type)
@@ -362,7 +365,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
 
                                     if (bf.IsUTF8Bytes() || (bf[0] == 0xEF && bf[1] == 0xBB && bf[2] == 0xBF))
                                     {
-                                        v10 = System.Text.Encoding.UTF8.GetString(bf)?.RemoveNull();
+                                        v10 = System.Text.Encoding.UTF32.GetString(bf)?.RemoveNull();
                                     }
                                     else
                                     {
@@ -388,7 +391,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
 
         private WSDataRow GetValuePtr(int ordinal)
         {
-            var  col = lstpColInfoData[ordinal];
+            var col = lstpColInfoData[ordinal];
             int offset = 0;
             short len = 0;
             IntPtr data = IntPtr.Zero;
@@ -396,13 +399,22 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
             if (col.info.IS_VAR_DATA_TYPE())
             {
                 offset = col.varmeta.offset[_index];
-                IntPtr rowptr = IntPtr.Add(rowdata, offset);
-                len = Marshal.ReadInt16(rowptr, 0);
-                data = IntPtr.Add(rowptr, sizeof(Int16));
+                if (offset >= 0)
+                {
+                    IntPtr rowptr = IntPtr.Add(rowdata, offset);
+                    len = Marshal.ReadInt16(rowptr, 0);
+                    data = IntPtr.Add(rowptr, sizeof(Int16));
+                }
+                else
+                {
+                    len = 0;
+                    data = IntPtr.Zero;
+                }
+
             }
             else
             {
-                offset = col.info.bytes *_index;
+                offset = col.info.bytes * _index;
                 len = (short)col.info.bytes;
                 data = IntPtr.Add(rowdata, offset);
             }
@@ -440,7 +452,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
         }
         public TaosException LastException()
         {
-            return  new TaosException(new TaosErrorResult() {  Code=_meta.code, Error=_meta.message});
+            return new TaosException(new TaosErrorResult() { Code = _meta.code, Error = _meta.message });
         }
 
         public bool Read()

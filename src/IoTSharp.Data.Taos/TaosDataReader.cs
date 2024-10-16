@@ -2,15 +2,18 @@
 //// Licensed under the MIT License, See License.txt in the project root for license information.
 
 using IoTSharp.Data.Taos.Protocols;
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using TDengineDriver;
 
 namespace IoTSharp.Data.Taos
@@ -26,8 +29,10 @@ namespace IoTSharp.Data.Taos
         private bool _closed;
         private bool _closeConnection;
         private int _fieldCount;
-     
-        internal ITaosProtocol taos =>_command?._connection?.taos;
+        private bool disposed = false;
+
+
+        internal ITaosProtocol taos => _command?._connection?.taos;
         ITaosContext _context;
         internal TaosDataReader(TaosCommand taosCommand, ITaosContext context)
         {
@@ -37,10 +42,10 @@ namespace IoTSharp.Data.Taos
             _hasRows = context.AffectRows > 0;
             _recordsAffected = context.AffectRows;
             _closed = _closeConnection;
-            _context=context; 
+            _context = context;
         }
 
- 
+
 
         /// <summary>
         ///     Gets the depth of nesting for the current row. Always zero.
@@ -145,16 +150,19 @@ namespace IoTSharp.Data.Taos
         /// </param>
         protected override void Dispose(bool disposing)
         {
-            if (!disposing)
+            if (!disposed)
             {
-                return;
+                if (!disposing)
+                {
+                    _command.DataReader = null;
+
+                    _closed = true;
+                    _context?.Dispose();
+                    _context = null;
+                    OnDispose?.Invoke(this, EventArgs.Empty);
+                }
+                disposed = true;
             }
-            _command.DataReader = null;
-           
-            _closed = true;
-            _context?.Dispose();
-            _context = null;
-            OnDispose?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -172,7 +180,7 @@ namespace IoTSharp.Data.Taos
         /// </summary>
         /// <param name="name">The name of the column.</param>
         /// <returns>The zero-based column ordinal.</returns>
-        public override int GetOrdinal(string name) =>_context.GetOrdinal(name);
+        public override int GetOrdinal(string name) => _context.GetOrdinal(name);
 
         public override string GetDataTypeName(int ordinal)
         {
@@ -184,9 +192,9 @@ namespace IoTSharp.Data.Taos
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The data type of the column.</returns>
-        public override Type GetFieldType(int ordinal) =>_context.GetFieldType(ordinal);
+        public override Type GetFieldType(int ordinal) => _context.GetFieldType(ordinal);
 
-        public  int  GetFieldSize(int ordinal) => _context.GetFieldSize(ordinal);
+        public int GetFieldSize(int ordinal) => _context.GetFieldSize(ordinal);
         /// <summary>
         ///     Gets a value indicating whether the specified column is <see cref="DBNull" />.
         /// </summary>
@@ -207,7 +215,7 @@ namespace IoTSharp.Data.Taos
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public override byte GetByte(int ordinal) => _context. GetByte(ordinal);
+        public override byte GetByte(int ordinal) => _context.GetByte(ordinal);
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="char" />.
@@ -241,29 +249,29 @@ namespace IoTSharp.Data.Taos
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public virtual TimeSpan GetTimeSpan(int ordinal) =>_context.GetTimeSpan(ordinal);
-     
+        public virtual TimeSpan GetTimeSpan(int ordinal) => _context.GetTimeSpan(ordinal);
+
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="decimal" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public override decimal GetDecimal(int ordinal) => (decimal)GetValue(ordinal);
+        public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="double" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public override double GetDouble(int ordinal) => (double)GetValue(ordinal);
+        public override double GetDouble(int ordinal) => Convert.ToDouble(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="float" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public override float GetFloat(int ordinal) => (float)GetValue(ordinal);
+        public override float GetFloat(int ordinal) => Convert.ToSingle(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="Guid" />.
@@ -277,49 +285,49 @@ namespace IoTSharp.Data.Taos
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public override short GetInt16(int ordinal) => (short)GetValue(ordinal);
+        public override short GetInt16(int ordinal) => Convert.ToInt16(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="ushort" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public ushort GetUInt16(int ordinal) => (ushort)GetValue(ordinal);
+        public ushort GetUInt16(int ordinal) => Convert.ToUInt16(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="int" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public override int GetInt32(int ordinal) => (int)GetValue(ordinal);
+        public override int GetInt32(int ordinal) => Convert.ToInt32(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="uint" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public uint GetUInt32(int ordinal) => (uint)GetValue(ordinal);
+        public uint GetUInt32(int ordinal) => Convert.ToUInt32(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="long" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public override long GetInt64(int ordinal) => (long)GetValue(ordinal);
+        public override long GetInt64(int ordinal) => Convert.ToInt64(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="ulong" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public ulong GetUInt64(int ordinal) => (ulong)GetValue(ordinal);
+        public ulong GetUInt64(int ordinal) => Convert.ToUInt64(GetValue(ordinal));
 
         /// <summary>
         ///     Gets the value of the specified column as a <see cref="string" />.
         /// </summary>
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
-        public override string GetString(int ordinal) => (string)GetValue(ordinal);
+        public override string GetString(int ordinal) => Convert.ToString(GetValue(ordinal));
 #if NET5_0_OR_GREATER
         public System.Text.Json.JsonDocument GetJsonDocument(int ordinal) => System.Text.Json.JsonDocument.Parse(GetString(ordinal));
 #endif 
@@ -334,9 +342,9 @@ namespace IoTSharp.Data.Taos
         /// <param name="bufferOffset">The index to which the data will be copied.</param>
         /// <param name="length">The maximum number of bytes to read.</param>
         /// <returns>The actual number of bytes read.</returns>
-        public override long GetBytes(int ordinal, long dataOffset, byte[] buffer, int bufferOffset, int length) 
+        public override long GetBytes(int ordinal, long dataOffset, byte[] buffer, int bufferOffset, int length)
                     => _context.GetBytes(ordinal, dataOffset, buffer, bufferOffset, length);
-  
+
 
         /// <summary>
         ///     Reads a stream of characters from the specified column. Not supported.
@@ -358,7 +366,7 @@ namespace IoTSharp.Data.Taos
         /// <param name="ordinal">The zero-based column ordinal.</param>
         /// <returns>The returned object.</returns>
         public override Stream GetStream(int ordinal) => _context.GetStream(ordinal);
-      
+
 
         /// <summary>
         ///     Gets the value of the specified column.
@@ -368,7 +376,7 @@ namespace IoTSharp.Data.Taos
         /// <returns>The value of the column.</returns>
         public override T GetFieldValue<T>(int ordinal) => (T)Convert.ChangeType(GetValue(ordinal), typeof(T));
 
- 
+
         /// <summary>
         ///     Gets the value of the specified column.
         /// </summary>
@@ -405,7 +413,7 @@ namespace IoTSharp.Data.Taos
         ///     Returns a System.Data.DataTable that describes the column metadata of the System.Data.Common.DbDataReader.
         /// </summary>
         /// <returns>A System.Data.DataTable that describes the column metadata.</returns>
-        public override DataTable GetSchemaTable() => _command.GetSchemaTable(GetName, GetFieldType, GetDataTypeName,GetFieldSize,_fieldCount);
-      
+        public override DataTable GetSchemaTable() => _command.GetSchemaTable(GetName, GetFieldType, GetDataTypeName, GetFieldSize, _fieldCount);
+
     }
 }

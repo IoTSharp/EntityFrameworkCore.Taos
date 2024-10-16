@@ -19,6 +19,9 @@ using IoTSharp.EntityFrameworkCore.Taos.Update.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Utilities;
+using Microsoft.EntityFrameworkCore.Metadata;
+using System.Linq;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection
@@ -52,6 +55,7 @@ namespace Microsoft.Extensions.DependencyInjection
             var builder = new EntityFrameworkRelationalServicesBuilder(serviceCollection)
                 .TryAdd<LoggingDefinitions, TaosLoggingDefinitions>()
                 .TryAdd<IDatabaseProvider, DatabaseProvider<TaosOptionsExtension>>()
+                .TryAdd<IDatabase, TaosDatabase>()//没有用。。
                 .TryAdd<IRelationalTypeMappingSource, TaosTypeMappingSource>()
                 .TryAdd<ISqlGenerationHelper, TaosSqlGenerationHelper>()
                 .TryAdd<IMigrationsAnnotationProvider, TaosMigrationsAnnotationProvider>()
@@ -63,6 +67,11 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IMigrationsSqlGenerator, TaosMigrationsSqlGenerator>()
                 .TryAdd<IRelationalDatabaseCreator, TaosDatabaseCreator>()
                 .TryAdd<IHistoryRepository, TaosHistoryRepository>()
+                .TryAdd<IBatchExecutor, TaosBatchExecutor>()
+                .TryAdd<ICommandBatchPreparer, TaosCommandBatchPreparer>()
+                .TryAdd<IQueryContextFactory, TaosQueryContextFactory>()
+                .TryAdd<IModelCustomizer, TaosModelCustomizer>()
+                .TryAdd<IRelationalCommandBuilderFactory, TaosEFCommandBuilderFactory>()
 
                 // New Query Pipeline
                 .TryAdd<IMethodCallTranslatorProvider, TaosMethodCallTranslatorProvider>()
@@ -70,8 +79,22 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IQuerySqlGeneratorFactory, TaosQuerySqlGeneratorFactory>()
                 .TryAdd<IQueryableMethodTranslatingExpressionVisitorFactory, TaosQueryableMethodTranslatingExpressionVisitorFactory>()
                 .TryAdd<IRelationalSqlTranslatingExpressionVisitorFactory, TaosSqlTranslatingExpressionVisitorFactory>()
+                .TryAdd<IRelationalParameterBasedSqlProcessorFactory, TaosParameterBasedSqlProcessorFactory>()
+
                 .TryAddProviderSpecificServices(
-                    b => b.TryAddScoped<ITaosRelationalConnection, TaosRelationalConnection>());
+                    b => b
+                    .TryAddScoped<IQueryProvider, TaosQueryProvider>()
+                    .TryAddScoped<ITaosRelationalConnection, TaosRelationalConnection>()
+                    .TryAddScoped<IRelationalCommandBuilder, TaosEFCommandBuilder>()//配置无效，未创建
+                    .TryAddScoped<IRelationalCommand, TaosEFCommand>()//配置无效，未创建
+                    )
+
+                .TryAdd<ISqlExpressionFactory, TaosSqlExpressionFactory>()//表达式的生成
+                .TryAdd<IRelationalQueryStringFactory, TaosRelationalQueryStringFactory>()
+
+
+
+            ;
 
             builder.TryAddCoreServices();
 

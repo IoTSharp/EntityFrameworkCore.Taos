@@ -51,31 +51,31 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
         private const string TINYINTTypeName = "TINYINT";
         private const string BOOLTypeName = "BOOL";
 
-        private static readonly LongTypeMapping _integer = new LongTypeMapping(BIGINTTypeName);
-        private static readonly DoubleTypeMapping _real = new DoubleTypeMapping(DOUBLETypeName);
-        private static readonly ByteArrayTypeMapping _blob = new ByteArrayTypeMapping(BINARYTypeName);
-        private static readonly StringTypeMapping _text = new StringTypeMapping(TextTypeName, System.Data.DbType.String);
+        private static readonly TaosLongTypeMapping _integer = new TaosLongTypeMapping(BIGINTTypeName);
+        private static readonly TaosDoubleTypeMapping _real = new TaosDoubleTypeMapping(DOUBLETypeName);
+        private static readonly TaosByteArrayTypeMapping _blob = new TaosByteArrayTypeMapping(BINARYTypeName);
+        private static readonly TaosStringTypeMapping _text = new TaosStringTypeMapping(TextTypeName, System.Data.DbType.String);
 
         private readonly Dictionary<Type, RelationalTypeMapping> _clrTypeMappings
             = new Dictionary<Type, RelationalTypeMapping>
             {
                 { typeof(string), _text },
                 { typeof(byte[]), _blob },
-                { typeof(bool), new BoolTypeMapping(BOOLTypeName) },
-                { typeof(byte), new ByteTypeMapping(TINYINTTypeName) },
-                { typeof(int), new IntTypeMapping(IntegerTypeName) },
+                { typeof(bool), new TaosBoolTypeMapping(BOOLTypeName) },
+                { typeof(byte), new TaosByteTypeMapping(TINYINTTypeName) },
+                { typeof(int), new TaosIntTypeMapping(IntegerTypeName) },
                 { typeof(long), _integer },
-                { typeof(sbyte), new SByteTypeMapping(IntegerTypeName) },
-                { typeof(short), new ShortTypeMapping(SMALLINTTypeName) },
-                { typeof(uint), new UIntTypeMapping(IntegerTypeName) },
+                { typeof(sbyte), new TaosSByteTypeMapping(IntegerTypeName) },
+                { typeof(short), new TaosShortTypeMapping(SMALLINTTypeName) },
+                { typeof(uint), new TaosUIntTypeMapping(IntegerTypeName) },
                 { typeof(ulong), new TaosULongTypeMapping(BIGINTTypeName) },
-                { typeof(ushort), new UShortTypeMapping(SMALLINTTypeName) },
+                { typeof(ushort), new TaosUShortTypeMapping(SMALLINTTypeName) },
                 { typeof(DateTime), new TaosDateTimeTypeMapping(TIMESTAMPTypeName) },
                 { typeof(DateTimeOffset), new TaosDateTimeOffsetTypeMapping(TIMESTAMPTypeName) },
-                { typeof(TimeSpan), new TimeSpanTypeMapping(TIMESTAMPTypeName) },
+                { typeof(TimeSpan), new TaosTimeSpanTypeMapping(TIMESTAMPTypeName) },
                 { typeof(decimal), new TaosDecimalTypeMapping(BIGINTTypeName) },
                 { typeof(double), _real },
-                { typeof(float), new FloatTypeMapping(FLOATTypeName) },
+                { typeof(float), new TaosFloatTypeMapping(FLOATTypeName) },
                 { typeof(Guid), new TaosGuidTypeMapping(BINARYTypeName) }
             };
 
@@ -153,6 +153,11 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
 
             return mapping;
         }
+
+        public override RelationalTypeMapping FindMapping(Type type)
+        {
+            return base.FindMapping(type);
+        }
         /// <summary>
         /// TODO:这里可能需要修改
         /// </summary>
@@ -179,5 +184,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
 
         private static bool Contains(string haystack, string needle)
             => haystack.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        
     }
 }
