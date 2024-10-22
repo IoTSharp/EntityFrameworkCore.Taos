@@ -447,7 +447,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
 
         private bool _ws_conn(TaosConnectionStringBuilder builder, ClientWebSocket _client)
         {
-            var rep = WSExecute<WSConnRsp, WSConnReq>(_client, new WSActionReq<WSConnReq>() { Action = "conn", Args = new WSConnReq() { user = builder.Username, password = builder.Password, req_id = 0, db = builder.DataBase } });
+            var rep = WSExecute<WSConnRsp, WSConnReq>(_client, new WSActionReq<WSConnReq>() { Action = "conn", Args = new WSConnReq() { user = builder.Username, password = builder.Password, req_id = 0 } });
             if (rep.code == 899)
             {
                 rep = WSExecute<WSConnRsp, WSConnReq>(_client, new WSActionReq<WSConnReq>() { Action = "conn", Args = new WSConnReq() { user = builder.Username, password = builder.Password, req_id = 0 } });

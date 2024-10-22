@@ -12,8 +12,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{61AA7587-946B-4B2F-92C9-73D0BA670B97}"
 	ProjectSection(SolutionItems) = preProject
 		appveyor.yml = appveyor.yml
+		.workflow\BranchPipeline.yml = .workflow\BranchPipeline.yml
+		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 		LICENSE = LICENSE
 		docs\logo.png = docs\logo.png
+		.workflow\MasterPipeline.yml = .workflow\MasterPipeline.yml
+		.workflow\PRPipeline.yml = .workflow\PRPipeline.yml
 		README.md = README.md
 		taos.cfg = taos.cfg
 		docs\taos_ch.png = docs\taos_ch.png

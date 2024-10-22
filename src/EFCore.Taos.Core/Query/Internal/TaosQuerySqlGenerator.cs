@@ -92,7 +92,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
 
 
             return exp;
-        }
+    }
 
         private Expression VisitTaosMatchExpression(TaosMatchExpression matchExpression)
         {
