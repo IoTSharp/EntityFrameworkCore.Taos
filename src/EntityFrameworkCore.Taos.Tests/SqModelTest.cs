@@ -25,15 +25,15 @@ namespace EntityFrameworkCore.Taos.Tests
             var s2 = SelectQueryParser.Parse(SQLDemo2);
             Assert.AreEqual(5, ((int?)s2.Parameters?.Count).GetValueOrDefault());
 
-            Assert.AreEqual("@p1", s2.Parameters?.Keys.ToArray()[0]);
+            Assert.AreEqual("@p1", s2.Parameters.FirstOrDefault()?.ParameterName);
 
             var pn2 = s2.Parameters;
             Assert.AreEqual(1, pn2.Count);
-            Assert.AreEqual("@p1", pn2.Keys.ToArray()[0]);
+            Assert.AreEqual("@p1", pn2.FirstOrDefault()?.ParameterName);
             var s3 = SelectQueryParser.Parse(SQLDemo3);
             Assert.AreEqual(7, s3.Parameters?.Count);
-            Assert.AreEqual("@t1", s3.Parameters?.ToArray()[1].Key);
-            Assert.AreEqual("@t11", s3.Parameters?.ToArray()[3].Key);
+            Assert.AreEqual("@t1", s3.Parameters[1].ParameterName);
+            Assert.AreEqual("@t11", s3.Parameters[3].ParameterName);
         //    Assert.AreEqual(" LIMIT ",s3.);
             //Assert.AreEqual("@t3", s3[5].OriginalText);
             //Assert.AreEqual(";", s3[6].OriginalText);
@@ -60,8 +60,8 @@ namespace EntityFrameworkCore.Taos.Tests
            
             var s5 = SelectQueryParser.Parse("insert into #subtable using stable tags($t1,$t2,$t3,$t4,$t5,$t6,$t7,$t8,$t9,$t10,$t11,$t12,$t13) values (@t1,@t2,@t3,@t4,@t5,@t6,@t7,@t8,@t9,@t10,@t11,@t12,@t13,@t14)");
             Assert.AreEqual(14, s5.Parameters?.Count);
-            Assert.AreEqual("#subtable", s5.Parameters?.ToArray()[0].Key);
-            Assert.AreEqual(13, s5.Parameters?.Count(k=>k.Key.StartsWith('$')));
+            Assert.AreEqual("#subtable", s5.Parameters?.FirstOrDefault()?.ParameterName);
+            Assert.AreEqual(13, s5.Parameters.Count(k=>k.ParameterName.StartsWith('$')));
          //   Assert.AreEqual("insert into ? using stable tags(?,?,?,?,?,?,?,?,?,?,?,?,?) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", s4.CommandText);
 
         }

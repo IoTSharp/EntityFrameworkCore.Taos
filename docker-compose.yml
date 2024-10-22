@@ -14,7 +14,7 @@ services:
       - taos-network
 
   taos:
-    image: tdengine/tdengine:3.2.1.0
+    image: tdengine/tdengine:3.3.3.0
     restart: always
     hostname: taos
     volumes:
@@ -23,6 +23,7 @@ services:
       - 6030:6030
       - 6035:6035
       - 6041:6041
+      - 6043:6043
       - 6030-6040:6030-6040/udp
     networks:
       - taos-network

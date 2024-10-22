@@ -106,7 +106,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
         {
             return base.VisitSqlConstant(sqlConstantExpression);
         }
-        protected override Expression VisitLike(LikeExpression likeExpression)
+        protected override void GenerateLike(LikeExpression likeExpression, bool negated)
         {
             Visit(likeExpression.Match);
             this.Sql.Append(" LIKE ");
@@ -117,8 +117,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                 this.Sql.Append(" ESCAPE ");
                 Visit(likeExpression.EscapeChar);
             }
-
-            return likeExpression;
         }
+     
     }
 }

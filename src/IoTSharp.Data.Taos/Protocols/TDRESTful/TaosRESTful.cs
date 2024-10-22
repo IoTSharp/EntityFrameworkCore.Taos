@@ -130,8 +130,11 @@ namespace IoTSharp.Data.Taos.Protocols.TDRESTful
 
         private TaosResult Execute(string _commandText)
         {
-            var cmdPackage = CombineCommandPackage.CreatePackage(_commandText, this);
-            return cmdPackage.ExeTask.Result;
+           
+                var cmdPackage = CombineCommandPackage.CreatePackage(_commandText, this);
+                Debug.Assert(_commandText != "create database if not exists ntest");
+                return cmdPackage.ExeTask.Result;
+          
         }
 
 

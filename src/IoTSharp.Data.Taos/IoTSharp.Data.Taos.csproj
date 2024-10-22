@@ -16,7 +16,7 @@
 			IoTSharp.Data.Taos.TaosParameter
 			IoTSharp.Data.Taos.TaosTransaction
 		</Description>
-		<TargetFrameworks>net6;net7;net8;net4.6;netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>net6;net8;net4.6;netstandard2.0</TargetFrameworks>
 		<LangVersion>10</LangVersion>
 		<PackageTags>Taos;Data;ADO.NET;Entity Framework,;EF; Core;Data O/RM,;entity-framework-core;TDengine;IoTSharp</PackageTags>
 		<Authors>Yanhong Ma</Authors>

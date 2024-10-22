@@ -213,20 +213,20 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
         {
             var tableMap = command.Table.EntityTypeMappings.FirstOrDefault(f =>
             {
-                var attr = f.EntityType.ClrType.GetCustomAttribute<TaosAttribute>();
+                var attr = f.TypeBase.ClrType.GetCustomAttribute<TaosAttribute>();
                 if (attr != null && !string.IsNullOrEmpty(attr.TableName))
                 {
                     return attr.TableName == command.TableName;
                 }
-                return f.EntityType.ClrType.Name == command.TableName;
+                return f.TypeBase. ClrType.Name == command.TableName;
             });
             var isSupperTable = false;
             var subTableName = string.Empty;
 
-            var propertyAttrMaps = tableMap.EntityType.ClrType.GetProperties().Select(s => (PropertyInfo: s, Attr: s.GetCustomAttribute<TaosColumnAttribute>())).ToList();
+            var propertyAttrMaps = tableMap.TypeBase.ClrType.GetProperties().Select(s => (PropertyInfo: s, Attr: s.GetCustomAttribute<TaosColumnAttribute>())).ToList();
             if (tableMap != null)
             {
-                var taosAttr = tableMap.EntityType.ClrType.GetCustomAttribute<TaosAttribute>();
+                var taosAttr = tableMap.TypeBase.ClrType.GetCustomAttribute<TaosAttribute>();
                 if (taosAttr != null)
                 {
                     isSupperTable = taosAttr.IsSuperTable;
@@ -399,20 +399,20 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
         {
             var tableMap = command.Table.EntityTypeMappings.FirstOrDefault(f =>
             {
-                var attr = f.EntityType.ClrType.GetCustomAttribute<TaosAttribute>();
+                var attr = f.TypeBase.ClrType.GetCustomAttribute<TaosAttribute>();
                 if (attr != null && !string.IsNullOrEmpty(attr.TableName))
                 {
                     return attr.TableName == command.TableName;
                 }
-                return f.EntityType.ClrType.Name == command.TableName;
+                return f.TypeBase.ClrType.Name == command.TableName;
             });
             var isSupperTable = false;
             var subTableName = string.Empty;
 
-            var propertyAttrMaps = tableMap.EntityType.ClrType.GetProperties().Select(s => (PropertyInfo: s, Attr: s.GetCustomAttribute<TaosColumnAttribute>())).ToList();
+            var propertyAttrMaps = tableMap.TypeBase.ClrType.GetProperties().Select(s => (PropertyInfo: s, Attr: s.GetCustomAttribute<TaosColumnAttribute>())).ToList();
             if (tableMap != null)
             {
-                var taosAttr = tableMap.EntityType.ClrType.GetCustomAttribute<TaosAttribute>();
+                var taosAttr = tableMap.TypeBase.ClrType.GetCustomAttribute<TaosAttribute>();
                 if (taosAttr != null)
                 {
                     isSupperTable = taosAttr.IsSuperTable;

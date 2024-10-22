@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
 // ReSharper disable once CheckNamespace
 namespace Microsoft.EntityFrameworkCore.Metadata.Conventions
 {
-    public class TaosAttributeConvention : EntityTypeAttributeConventionBase<TaosAttribute>
+    public class TaosAttributeConvention : Microsoft.EntityFrameworkCore.Metadata.Conventions.TypeAttributeConventionBase<TaosAttribute>
     {
         public TaosAttributeConvention(ProviderConventionSetBuilderDependencies dependencies) : base(dependencies)
         {

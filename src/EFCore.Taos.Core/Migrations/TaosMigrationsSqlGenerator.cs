@@ -324,7 +324,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
 
 
             var table = model?.GetRelationalModel().FindTable(operation.Name, operation.Schema);
-            var mt = table.EntityTypeMappings.FirstOrDefault().EntityType.ClrType;
+            var mt = table.EntityTypeMappings.FirstOrDefault().TypeBase.ClrType;
             var tabInfo = mt.GetCustomAttribute<TaosAttribute>();
             var isSupertable = tabInfo?.IsSuperTable ?? false;
             //IColumn column = table?.FindColumn(operation.Name);
@@ -404,7 +404,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             MigrationCommandListBuilder builder)
         {
             var table = model?.GetRelationalModel().FindTable(operation.Name, null);
-            var mt = table.EntityTypeMappings.FirstOrDefault().EntityType.ClrType;
+            var mt = table.EntityTypeMappings.FirstOrDefault().TypeBase.ClrType;
             var propInfos = mt.GetProperties()
                 .Select(s => (propertyInfo: s, Info: s.GetCustomAttribute<TaosColumnAttribute>()))
                 .Where(w => w.Info != null)
