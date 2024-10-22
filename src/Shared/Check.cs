@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+
 using JetBrains.Annotations;
+
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Internal;
 
@@ -93,6 +95,15 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             }
 
             return value;
+        }
+
+        [Conditional("DEBUG")]
+        public static void DebugAssert([System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)] bool condition, string message)
+        {
+            if (!condition)
+            {
+                throw new Exception($"Check.DebugAssert failed: {message}");
+            }
         }
     }
 }

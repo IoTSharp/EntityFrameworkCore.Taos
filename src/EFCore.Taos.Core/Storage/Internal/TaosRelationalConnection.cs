@@ -105,5 +105,9 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Storage.Internal
             }
             return result;
         }
+        public override void ReturnCommand(IRelationalCommand command)
+        {
+            base.ReturnCommand(command);
+        }
     }
 }

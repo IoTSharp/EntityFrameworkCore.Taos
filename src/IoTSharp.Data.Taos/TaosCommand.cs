@@ -3,6 +3,7 @@
 
 using IoTSharp.Data.Taos.Driver;
 using IoTSharp.Data.Taos.Protocols;
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,6 +17,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using TDengineDriver;
 
 namespace IoTSharp.Data.Taos
@@ -27,15 +29,15 @@ namespace IoTSharp.Data.Taos
     {
         internal readonly Lazy<TaosParameterCollection> _parameters = new Lazy<TaosParameterCollection>(
             () => new TaosParameterCollection());
-        internal  TaosConnection _connection;
+        internal TaosConnection _connection;
         internal string _commandText;
-        private ITaosProtocol _taos =>_connection?.taos;
+        private ITaosProtocol _taos => _connection?.taos;
         /// <summary>
         ///     Initializes a new instance of the <see cref="TaosCommand" /> class.
         /// </summary>
         public TaosCommand()
         {
-    
+
         }
 
         /// <summary>
@@ -118,13 +120,13 @@ namespace IoTSharp.Data.Taos
                 {
                     throw new InvalidOperationException($"SetRequiresNoOpenReader{nameof(Connection)}");
                 }
-              
+
                 if (value != _connection)
                 {
                     _connection?.RemoveCommand(this);
                     _connection = value;
-                    value?.AddCommand(this);
                 }
+                value?.AddCommand(this);
             }
         }
 
@@ -247,7 +249,7 @@ namespace IoTSharp.Data.Taos
         public new virtual TaosDataReader ExecuteReader()
             => ExecuteReader(CommandBehavior.Default);
 
-      
+
 
         /// <summary>
         ///     Executes the <see cref="CommandText" /> against the database and returns a data reader.
@@ -264,7 +266,7 @@ namespace IoTSharp.Data.Taos
         /// <exception cref="TaosException">A Taos error occurs during execution.</exception>
         public new virtual TaosDataReader ExecuteReader(CommandBehavior behavior)
         {
-           return _taos.ExecuteReader(behavior, this);
+            return _taos.ExecuteReader(behavior, this);
         }
 
 
@@ -338,7 +340,7 @@ namespace IoTSharp.Data.Taos
         protected override async Task<DbDataReader> ExecuteDbDataReaderAsync(
             CommandBehavior behavior,
             CancellationToken cancellationToken)
-            => await ExecuteReaderAsync(behavior, cancellationToken);
+            => await ExecuteReaderAsync(behavior, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         ///     Executes the <see cref="CommandText" /> against the database.
@@ -378,10 +380,10 @@ namespace IoTSharp.Data.Taos
             {
                 throw new InvalidOperationException($"CallRequiresSetCommandText{nameof(ExecuteScalar)}");
             }
-            object result =null;
+            object result = null;
             using (var reader = _taos.ExecuteReader(CommandBehavior.Default, this))
             {
-                result= reader.Read()
+                result = reader.Read()
                     ? reader.GetValue(0)
                     : null;
             }
@@ -393,9 +395,9 @@ namespace IoTSharp.Data.Taos
         /// <param name="subscribe"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public bool ExecuteSubscribe(string  topic, Action<TaosDataReader> subscribe)
+        public bool ExecuteSubscribe(string topic, Action<TaosDataReader> subscribe)
         {
-            throw new  NotImplementedException();
+            throw new NotImplementedException();
         }
         /// <summary>
         /// 订阅数据， 以对象方式返回。 
@@ -408,7 +410,7 @@ namespace IoTSharp.Data.Taos
         {
             throw new NotImplementedException();
         }
-   
+
         /// <summary>
         ///     Attempts to cancel the execution of the command. Does nothing.
         /// </summary>

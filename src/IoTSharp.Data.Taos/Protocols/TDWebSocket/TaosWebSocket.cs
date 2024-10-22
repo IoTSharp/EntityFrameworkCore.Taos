@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -9,6 +10,7 @@ using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+
 using TDengineDriver;
 
 namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
@@ -23,11 +25,18 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
 
         public bool ChangeDatabase(string databaseName)
         {
-            Close(_builder);
-            _databaseName = databaseName;
-            _builder.DataBase = _databaseName;
-            var result = Open(_builder);
-            return result;
+            if (_builder.DataBase != databaseName)
+            {
+
+                Close(_builder);
+                _builder.DataBase = databaseName;
+                var result = Open(_builder);
+                return result;
+            }
+            else
+            {
+                return true;
+            }
         }
 
         public void Close(TaosConnectionStringBuilder connectionStringBuilder)
@@ -102,7 +111,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
             var _prepare = WSExecute<WSStmtRsp>(_stmt_client, "prepare", new { req_id, stmt_id, sql = sql.CommandText });
             if (_prepare.code != 0) TaosException.ThrowExceptionForRC(new TaosErrorResult() { Code = _prepare.code, Error = _prepare.message });
 
-            BindParameters(pms, out var columns, out var tags,out var subtablename);
+            BindParameters(pms, out var columns, out var tags, out var subtablename);
             req_id++;
             if (!string.IsNullOrEmpty(subtablename))
             {
@@ -131,7 +140,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
             return wSResult;
         }
 
-        private void BindParameters(TaosParameterCollection pms, out List<object[]> _datas, out List<string> _tags,out string _subtablename)
+        private void BindParameters(TaosParameterCollection pms, out List<object[]> _datas, out List<string> _tags, out string _subtablename)
         {
             _datas = new List<object[]>();
             _tags = new List<string>();
@@ -142,6 +151,10 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
                 var _bind = new KeyValuePair<string, object>();
                 switch (Type.GetTypeCode(tp.Value?.GetType()))
                 {
+                    case TypeCode.DBNull:
+                    case TypeCode.Empty:
+                        _bind = new KeyValuePair<string, object>(tp.ParameterName, tp.Value);
+                        break;
                     case TypeCode.Boolean:
                         _bind = new KeyValuePair<string, object>(tp.ParameterName, tp.Value as bool?);
                         break;
@@ -232,17 +245,18 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
                     default:
                         throw new NotSupportedException($"列{tp.ParameterName}的类型{tp.Value?.GetType()}({tp.DbType},{tp.TaosType})不支持");
                 }
-                if (_bind.Value == null || string.IsNullOrEmpty(_bind.Value?.ToString()))
-                {
-                    throw new ArgumentNullException($"列{tp.ParameterName}的类型为空");
-                }
-                JObject jo = new()
-                {
-                        { _bind.Key, new JValue(_bind.Value) }
-                    };
+                //if (_bind.Value == null || string.IsNullOrEmpty(_bind.Value?.ToString()))
+                //{
+                //    throw new ArgumentNullException($"列{tp.ParameterName}的类型为空");
+                //}
+                //JObject jo = new()
+                //{
+                //        { _bind.Key, new JValue(_bind.Value) }
+                //};
                 if (tp.ParameterName.StartsWith("$"))
                 {
-                    _tags.Add(jo.ToString());
+                    //_tags.Add(jo.ToString());
+                    _tags.Add(_bind.Value?.ToString());
                 }
                 else if (tp.ParameterName.StartsWith("@"))
                 {
@@ -268,7 +282,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
         }
         private R WSExecute<R, T>(ClientWebSocket _client, string _action, T req, Action<byte[], int> _deserialize_binary = null)
         {
-           return WSExecute<R, T>(_client, new WSActionReq<T>() { Action = _action, Args = req }, _deserialize_binary);
+            return WSExecute<R, T>(_client, new WSActionReq<T>() { Action = _action, Args = req }, _deserialize_binary);
         }
         private R WSExecute<R, T>(ClientWebSocket _client, WSActionReq<T> req, Action<byte[], int> _deserialize_binary = null)
         {
@@ -322,6 +336,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
 
                 case WebSocketMessageType.Text:
                     var json = Encoding.UTF8.GetString(buffer, 0, offset);
+                    Debug.WriteLine($"TaosWebSocket WSExecute Json:{json}");
                     _result = Newtonsoft.Json.JsonConvert.DeserializeObject<R>(json);
                     break;
 
@@ -430,7 +445,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
             return _ws_conn(builder, _ws_client);
         }
 
-        private bool _ws_conn(TaosConnectionStringBuilder builder,ClientWebSocket _client)
+        private bool _ws_conn(TaosConnectionStringBuilder builder, ClientWebSocket _client)
         {
             var rep = WSExecute<WSConnRsp, WSConnReq>(_client, new WSActionReq<WSConnReq>() { Action = "conn", Args = new WSConnReq() { user = builder.Username, password = builder.Password, req_id = 0, db = builder.DataBase } });
             if (rep.code == 899)
@@ -456,10 +471,10 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
         private void _open__schemaless(TaosConnectionStringBuilder builder)
         {
             if (_schemaless_client == null) _schemaless_client = new ClientWebSocket();
-            _open__ws_client(builder,_schemaless_client, "/rest/schemaless");
+            _open__ws_client(builder, _schemaless_client, "/rest/schemaless");
             WSExecute(_schemaless_client, "conn", new { user = builder.Username, password = builder.Password });
         }
-        private void _open__ws_client(TaosConnectionStringBuilder builder,ClientWebSocket _client, string path)
+        private void _open__ws_client(TaosConnectionStringBuilder builder, ClientWebSocket _client, string path)
         {
             var url = $"ws://{builder.DataSource}:{builder.Port}{path}";
             if (string.IsNullOrEmpty(builder.Token))
@@ -495,7 +510,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
             );
             if (_insert.code != 0)
             {
-                TaosException.ThrowExceptionForRC(new TaosErrorResult() { Code = _insert.code, Error =  _insert.message });
+                TaosException.ThrowExceptionForRC(new TaosErrorResult() { Code = _insert.code, Error = _insert.message });
             }
             return lines.Length;
         }

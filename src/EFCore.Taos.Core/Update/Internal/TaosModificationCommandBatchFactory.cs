@@ -2,9 +2,13 @@
 // Licensed under the MIT License, See License.txt in the project root for license information.
 
 using JetBrains.Annotations;
+
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+
+using System.Runtime.CompilerServices;
 
 namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
 {
@@ -46,6 +50,7 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Update.Internal
         ///     doing so can result in application failures when updating to a new Entity Framework Core release.
         /// </summary>
         public virtual ModificationCommandBatch Create()
-            => new SingularModificationCommandBatch(_dependencies);
+            => new TaosModificationCommandBatch(_dependencies);
+        //=> new SingularModificationCommandBatch(_dependencies);
     }
 }

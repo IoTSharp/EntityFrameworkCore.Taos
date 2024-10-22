@@ -116,11 +116,18 @@ namespace IoTSharp.EntityFrameworkCore.Taos.Query.Internal
                     ? null
                     : visitedExpression;
         }
+        protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
+        {
+            return base.VisitMethodCall(methodCallExpression);
+        }
 
-       
- 
 
-     
+        protected override Expression VisitExtension(Expression extensionExpression)
+        {
+            return base.VisitExtension(extensionExpression);
+        }
+
+
 
         private static Type GetProviderType(SqlExpression expression)
             => expression == null
