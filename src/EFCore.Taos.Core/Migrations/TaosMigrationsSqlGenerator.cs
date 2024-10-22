@@ -17,6 +17,10 @@ using Microsoft.EntityFrameworkCore.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using IoTSharp.Data.Taos;
 using System.Text;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Xml.Linq;
+using System.Reflection;
+using IoTSharp.EntityFrameworkCore.Taos;
 
 namespace Microsoft.EntityFrameworkCore.Migrations
 {
@@ -48,8 +52,8 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             _migrationsAnnotations = migrationsAnnotations;
             _taosConnectionStringBuilder = new TaosConnectionStringBuilder(connection.ConnectionString);
         }
-      
-   
+
+
         private bool IsSpatialiteColumn(AddColumnOperation operation, IModel model)
             => TaosTypeMappingSource.IsSpatialiteType(
                 operation.ColumnType
@@ -78,7 +82,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             Check.NotNull(builder, nameof(builder));
 
             var sqlBuilder = new StringBuilder();
-        
+
 
             builder.Append(sqlBuilder.ToString());
 
@@ -98,7 +102,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                     var table = migrationOperations
                         .OfType<CreateTableOperation>()
                         .FirstOrDefault(o => o.Name == foreignKeyOperation.Table);
-                    table.Schema= _taosConnectionStringBuilder.DataBase;
+                    table.Schema = _taosConnectionStringBuilder.DataBase;
                     if (table != null)
                     {
                         table.ForeignKeys.Add(foreignKeyOperation);
@@ -111,7 +115,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 else if (operation is CreateTableOperation createTableOperation)
                 {
                     var spatialiteColumns = new Stack<AddColumnOperation>();
-                 createTableOperation.Schema = _taosConnectionStringBuilder.DataBase;
+                    createTableOperation.Schema = _taosConnectionStringBuilder.DataBase;
                     for (var i = createTableOperation.Columns.Count - 1; i >= 0; i--)
                     {
                         var addColumnOperation = createTableOperation.Columns[i];
@@ -155,12 +159,12 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 .AppendLine(Dependencies.SqlGenerationHelper.StatementTerminator);
             EndStatement(builder);
         }
-        
+
         protected override void Generate(SqlOperation operation, IModel model, MigrationCommandListBuilder builder)
         {
             base.Generate(operation, model, builder);
         }
-       
+
         /// <summary>
         ///     Builds commands for the given <see cref="AddColumnOperation" /> by making calls on the given
         ///     <see cref="MigrationCommandListBuilder" />.
@@ -249,7 +253,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                     .EndCommand();
             }
         }
- 
+
 
         /// <summary>
         ///     Builds commands for the given <see cref="RenameTableOperation" />
@@ -313,21 +317,33 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             MigrationCommandListBuilder builder,
             bool terminate = true)
         {
+
+            //var entityTypeWithNullPk
+            //    = model.GetEntityTypes()
+            //        .FirstOrDefault(et => !((IConventionEntityType)et).IsKeyless && et.BaseType == null && et.FindPrimaryKey() == null);
+
+
+            var table = model?.GetRelationalModel().FindTable(operation.Name, operation.Schema);
+            var mt = table.EntityTypeMappings.FirstOrDefault().EntityType.ClrType;
+            var tabInfo = mt.GetCustomAttribute<TaosAttribute>();
+            var isSupertable = tabInfo?.IsSuperTable ?? false;
+            //IColumn column = table?.FindColumn(operation.Name);
+
+            var tableName = operation.Name;
+            if (!string.IsNullOrEmpty(tabInfo.TableName))
+            {
+                tableName = tabInfo.TableName;
+            }
+
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
             operation.Schema = _taosConnectionStringBuilder.DataBase;
             builder
-                .Append("CREATE TABLE ")
-                .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(operation.Name, operation.Schema))
-                .AppendLine(" (");
+                .Append($"CREATE {(isSupertable ? "STABLE" : "TABLE")} IF NOT EXISTS ")
+                .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(tableName, operation.Schema))
+                .AppendLine(" ");
 
-            using (builder.Indent())
-            {
-                CreateTableColumns(operation, model, builder);
-                builder.AppendLine();
-            }
-
-            builder.Append(")");
+            CreateTableColumns(operation, model, builder);
 
             if (terminate)
             {
@@ -335,10 +351,31 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 EndStatement(builder);
             }
         }
-     
+
         protected override void ColumnDefinition(AddColumnOperation operation, IModel model, MigrationCommandListBuilder builder)
         {
-            builder.Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(operation.Name)).Append(" ").Append(operation.ColumnType ?? GetColumnType(operation.Schema, operation.Table, operation.Name, operation, model));
+            var info = operation.ClrType.GetCustomAttribute<TaosColumnAttribute>();
+            var columnName = operation.Name;
+            if (info != null && !string.IsNullOrWhiteSpace(info.ColumnName))
+            {
+                columnName = info.ColumnName;
+            }
+            builder
+                .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(columnName))
+                .Append(" ")
+                .Append(operation.ColumnType ?? GetColumnType(operation.Schema, operation.Table, operation.Name, operation, model));
+            switch (operation.ColumnType)
+            {
+                case "BINARY":
+                case "NCHAR":
+                case "VARCHAR":
+                case "GEOMETRY":
+                case "VARBINARY":
+                    builder.Append($"({operation.MaxLength})");
+                    break;
+                default:
+                    break;
+            }
         }
         //protected override string GetColumnType(string schema, string table, string name, ColumnOperation operation, IModel model)
         //{
@@ -366,22 +403,82 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             IModel model,
             MigrationCommandListBuilder builder)
         {
-            for (var i = 0; i < operation.Columns.Count; i++)
-            {
-                var column = operation.Columns[i];
+            var table = model?.GetRelationalModel().FindTable(operation.Name, null);
+            var mt = table.EntityTypeMappings.FirstOrDefault().EntityType.ClrType;
+            var propInfos = mt.GetProperties()
+                .Select(s => (propertyInfo: s, Info: s.GetCustomAttribute<TaosColumnAttribute>()))
+                .Where(w => w.Info != null)
+                .ToList();
 
-                if (i > 0)
+            var opertionTagsGroup = operation.Columns.GroupBy(w =>
+            {
+                var propInfo = propInfos.FirstOrDefault(f => f.propertyInfo.Name == w.Name || f.Info.ColumnName == w.Name);
+
+                return propInfo.Info?.IsTag ?? false;
+
+            }).ToList();
+
+            var othertagsOpertions = opertionTagsGroup.FirstOrDefault(w => !w.Key)?.ToList();
+            if (othertagsOpertions != null && othertagsOpertions.Count() > 0)
+            {
+                builder.Append("(");
+                using (builder.Indent())
                 {
+                    for (var i = 0; i < othertagsOpertions.Count; i++)
+                    {
+                        var column = othertagsOpertions[i];
+
+                        if (i > 0)
+                        {
+                            builder.AppendLine();
+                        }
+
+                        this.ColumnDefinition(column, model, builder);
+
+                        if (i != othertagsOpertions.Count - 1)
+                        {
+                            builder.AppendLine(",");
+                        }
+                    }
+
                     builder.AppendLine();
                 }
-                
-                this.ColumnDefinition(column, model, builder);
 
-                if (i != operation.Columns.Count - 1)
-                {
-                    builder.AppendLine(",");
-                }
+                builder.Append(")");
             }
+
+            var tagsOpertions = opertionTagsGroup.FirstOrDefault(w => w.Key).ToList();
+            if (tagsOpertions != null && tagsOpertions.Count() > 0)
+            {
+                builder.Append(" TAGS (");
+                using (builder.Indent())
+                {
+                    builder.AppendLine();
+                    for (var i = 0; i < tagsOpertions.Count; i++)
+                    {
+                        var column = tagsOpertions[i];
+
+                        if (i > 0)
+                        {
+                            builder.AppendLine();
+                        }
+
+                        this.ColumnDefinition(column, model, builder);
+
+                        if (i != tagsOpertions.Count - 1)
+                        {
+                            builder.AppendLine(",");
+                        }
+                    }
+
+                    builder.AppendLine();
+                }
+
+                builder.Append(")");
+            }
+
+
+
         }
 
         /// <summary>
@@ -465,7 +562,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             => throw new NotSupportedException(
                 TaosStrings.InvalidMigrationOperation(operation.GetType().ShortDisplayName()));
 
-  
+
 
         /// <summary>
         ///     Throws <see cref="NotSupportedException" /> since this operation requires table rebuilds, which
@@ -631,5 +728,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             => throw new NotSupportedException(TaosStrings.SequencesNotSupported);
 
         #endregion
+
     }
 }

@@ -9,7 +9,7 @@ namespace IoTSharp.Data.Taos.Protocols.TDWebSocket
         /// <summary>
         /// 
         /// </summary>
-        public int timing { get; set; }
+        public long timing { get; set; }
         /// <summary>
         /// 
         /// </summary>
