@@ -1,9 +1,9 @@
-# IoTSharp.EntityFrameworkCore.Taos
+# IoTSharp.Data.Taos
 
 ## 项目简介
 
 
-ADO.Net Entity, Framework, EF, Core, Data, O/RM, entity-framework-core,TDengine
+ADO.Net ,  Data, O/RM, TDengine
 --
 
 IoTSharp.Data.Taos  是 TDengine的ADO.Net提供程序。 它将允许你通过原生动态库、WebSocket、RESTful 三种协议访问TDengine，通过 Schemaless 完美实现了ExecuteBulkInsert批量插入、Stmt 实现了参数化执行。
@@ -42,8 +42,7 @@ IoTSharp.Data.Taos  是 TDengine的ADO.Net提供程序。 它将允许你通过�
 ```
 
 
-IoTSharp.EntityFrameworkCore.Taos 是一个Entity Framework Core 的提供器， 基于IoTSharp.Data.Taos实现。 
-(原名称为 Maikebing.EntityFrameworkCore.Taos)
+IoTSharp.EntityFrameworkCore.Taos  已经废弃。 
 
 ---
 
@@ -109,27 +108,7 @@ IoTSharp.EntityFrameworkCore.Taos 是一个Entity Framework Core 的提供器，
         Console.WriteLine("DROP DATABASE {0} {1}", database, connection.CreateCommand($"DROP DATABASE   {database};").ExecuteNonQuery());
         connection.Close();
     }
-    //Example for  Entity Framework Core  
-    using (var context = new TaosContext(new DbContextOptionsBuilder()
-                                            .UseTaos(builder.ConnectionString).Options))
-    {
-        Console.WriteLine("EnsureCreated");
-        context.Database.EnsureCreated();
-        for (int i = 0; i < 10; i++)
-        {
-            var rd = new Random();
-            context.sensor.Add(new sensor() { ts = DateTime.Now.AddMilliseconds(i), degree = rd.NextDouble(), pm25 = rd.Next(0, 1000) });
-        }
-        Console.WriteLine("Saving");
-        context.SaveChanges();
-        Console.WriteLine("");
-        Console.WriteLine("from s in context.sensor where s.pm25 > 0 select s ");
-        Console.WriteLine("");
-        var f = from s in context.sensor where s.pm25 > 0 select s;
-        var ary = f.ToArray();
-        ConsoleTableBuilder.From(ary.ToList()).WithFormat(ConsoleTableBuilderFormat.MarkDown).ExportAndWriteLine();
-        context.Database.EnsureDeleted();
-    }
+   
     Console.WriteLine("");
     Console.WriteLine("Pass any key to exit....");
     Console.ReadKey();
