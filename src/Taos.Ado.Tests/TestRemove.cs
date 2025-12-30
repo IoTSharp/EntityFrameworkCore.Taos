@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EntityFrameworkCore.Taos.Tests
+namespace Taos.Ado.Tests
 {
 
     [TestClass]

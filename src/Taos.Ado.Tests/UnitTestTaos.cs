@@ -2,7 +2,6 @@ using Ductus.FluentDocker.Model.Containers;
 using Ductus.FluentDocker.Services;
 using Ductus.FluentDocker.Services.Extensions;
 using IoTSharp.Data.Taos;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 using System;
@@ -13,7 +12,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace EntityFrameworkCore.Taos.Tests
+namespace Taos.Ado.Tests
 {
     [TestClass]
     public class UnitTestTaos
@@ -212,31 +211,6 @@ namespace EntityFrameworkCore.Taos.Tests
             Console.WriteLine($"ªÿ ’∫Û:{GC.GetTotalMemory(false)}");
         }
 
-        [TestMethod]
-        public void TestEntityFrameworkCore()
-        {
-            var efbuilder = new TaosConnectionStringBuilder()
-            {
-                DataSource = System.Net.Dns.GetHostName(),
-                DataBase = "db_" + DateTime.Now.ToString("yyyyMMddHHmmss"),
-                Username = "root",
-                Password = "taosdata",
-                Port = 6030
-            };
-            using (var context = new TaosContext(new DbContextOptionsBuilder()
-                                                   .UseTaos(builder.ConnectionString).Options))
-            {
-                Assert.IsTrue(context.Database.EnsureCreated());
-                for (int i = 0; i < 10; i++)
-                {
-                    var rd = new Random();
-                    context.Sensor.Add(new sensor() { ts = DateTime.Now.AddMilliseconds(i + 10), degree = rd.NextDouble(), pm25 = rd.Next(1, 1000) });
-                }
-                Assert.AreEqual(10, context.SaveChanges());
-                var f = from s in context.Sensor where s.pm25 > 0 select s;
-                Assert.AreEqual(10, f.Count());
-                context.Database.EnsureDeleted();
-            }
-        }
+      
     }
 }

@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EntityFrameworkCore.Taos.Tests
+namespace Taos.Ado.Tests
 {
     [TestClass]
     public class SqModelTest
@@ -28,7 +28,7 @@ namespace EntityFrameworkCore.Taos.Tests
             Assert.AreEqual("@p1", s2.Parameters.FirstOrDefault()?.ParameterName);
 
             var pn2 = s2.Parameters;
-            Assert.AreEqual(1, pn2.Count);
+            Assert.HasCount(1, pn2);
             Assert.AreEqual("@p1", pn2.FirstOrDefault()?.ParameterName);
             var s3 = SelectQueryParser.Parse(SQLDemo3);
             Assert.AreEqual(7, s3.Parameters?.Count);

@@ -1,14 +1,7 @@
 ﻿using ConsoleTableExt;
-
 using Example;
-
 using IoTSharp.Data.Taos;
-
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query.Internal;
-
 using Newtonsoft.Json.Linq;
-
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -16,8 +9,6 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
-using System.Net.WebSockets;
-using System.Reflection.Metadata;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -66,7 +57,6 @@ namespace TaosADODemo
                 PoolSize = 20
             };
             builder.ConnectionTimeout = 10000;
-            UseTaosEFCore(builder.UseNative());
 
             var builder_cloud = new TaosConnectionStringBuilder()
             {
@@ -83,20 +73,16 @@ namespace TaosADODemo
 #if DEBUG
             // ExecSqlByNative(builder_cloud.UseCloud_DSN());
             ExecSqlByNative(builder.UseNative());
-            UseTaosEFCore(builder.UseNative());
             ExecSqlByRESTFul(builder.UseRESTful());
             ExecSqlByStmt(builder.UseWebSocket());
             ExecSqlByWebSocket(builder.UseWebSocket());
-            UseTaosEFCore(builder.UseWebSocket());
 
 
 #else
             ExecSqlByNative(builder.UseNative());
-            UseTaosEFCore(builder.UseNative());
             ExecSqlByRESTFul(builder.UseRESTful());
             ExecSqlByStmt(builder.UseWebSocket());
             ExecSqlByWebSocket(builder.UseWebSocket());
-            UseTaosEFCore(builder.UseWebSocket());
 #endif
             using (var connection = new TaosConnection(builder.ConnectionString))
             {
@@ -579,96 +565,7 @@ namespace TaosADODemo
             }
         }
 
-        private static void UseTaosEFCore(TaosConnectionStringBuilder builder)
-        {
-            //Example for  Entity Framework Core
-            using (var context = new TaosContext(new DbContextOptionsBuilder()
-                                                    .UseTaos(builder.ConnectionString).Options))
-            {
-
-                Console.WriteLine("EnsureCreated");
-                context.Database.EnsureCreated();
-                var k = "Consigne+3";
-                var cm0 = context.DeviceData.Where(w => w.PropertyCode.Contains(Tx(k))).ToList();
-                var cm = context.DeviceData.Where(w => w.PropertyCode.Contains(k)).ToList();
-                var cm1 = context.DeviceData.Where(w => w.PropertyCode.Contains("Consigne+3")).ToList();
-                var cl = context.DeviceData.Where(w => w.Data > 0).ToList();
-                var cc0 = context.DeviceData.Where(w => 1 != 0).Count();
-                var cc = context.DeviceData.Where(w => 1 == 0).Count();
-                var f0 = from s in context.DeviceData where s.Data > 0 select s;
-                var farry = f0.Skip(10).Take(100).ToList();
-
-                var f1 = (from s in context.DeviceData where s.Data == null select s).ToList();
-
-
-
-
-                var addC = 1000;
-
-                //for (int i = 0; i < addC; i++)
-                //{
-                //    var rd = new Random();
-                //    context.DeviceData.Add(new DeviceData()
-                //    {
-                //        Time = DateTime.Now.AddMilliseconds(i + 10),
-                //        ProductCode = $"productCode{i}",
-                //        DeviceCode = $"deviceCode{i}#Test",
-                //        PropertyCode = $"propertyCode#{i}",
-                //        SubTableName = $"tableName{i}",
-                //        Content = rd.Next(0, 1000).ToString(),
-                //        Data = null
-                //    });
-                //}
-                var ts = DateTimeOffset.Now;
-                for (int i = 0; i < addC; i++)
-                {
-                    var rd = new Random();
-                    context.DeviceData.Add(new DeviceData()
-                    {
-                        Identifier = $"{ts.AddMilliseconds(100 * i).ToUnixTimeSeconds()}_cw126_t2thermoCamera-p-pwd{i}",
-                        SubTableName = $"device_data_cw126_pwd{i}",
-                        ProductCode = "T2ThermoCamera",
-                        DeviceCode = "cw126",
-                        PropertyCode = $"t2thermoCamera-p-pwd{i}",
-                        Content = i + "",
-                        Data = null,
-                        Time = ts.AddMilliseconds(100 * i).UtcDateTime
-                    });
-                }
-
-                var saveSync = true;
-                var sw = Stopwatch.StartNew();
-                Console.WriteLine("Saving");
-                if (saveSync)
-                {
-                    var tt = context.SaveChangesAsync();
-                    tt.Wait();
-                }
-                else
-                {
-                    context.SaveChanges();
-                }
-
-                sw.Stop();
-                Console.WriteLine($"Save Use:{sw.Elapsed}");
-
-
-                Console.WriteLine("");
-                Console.WriteLine("from s in context.sensor where s.pm25 > 0 select s ");
-                Console.WriteLine("");
-                //var tc = context.DeviceData.Count();
-                var m = new { A = "pr", B = 1 };
-                var f = from s in context.DeviceData where s.ProductCode.Contains(m.A) select s;
-                var ary = f.ToList();
-
-                var x = f.Count();
-                if (ary.Any())
-                {
-                    ConsoleTableBuilder.From(ary.ToList()).WithFormat(ConsoleTableBuilderFormat.MarkDown).ExportAndWriteLine();
-                }
-                context.Database.EnsureDeleted();
-            }
-        }
+     
 
         private static string Tx(string v)
         {

@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Carbunql" Version="0.8.15" />
+	  <PackageReference Include="Alba" Version="8.4.0" />
+	  <PackageReference Include="MXLogger" Version="2.0.13" />
+	  <PackageReference Include="Testcontainers" Version="4.9.0" />
+	  <PackageReference Include="Testcontainers.InfluxDb" Version="4.9.0" />
+	  <PackageReference Include="Testcontainers.MongoDb" Version="4.9.0" />
+	  <PackageReference Include="Testcontainers.MySql" Version="4.9.0" />
+	  <PackageReference Include="Testcontainers.PostgreSql" Version="4.9.0" />
+	  <PackageReference Include="Testcontainers.RabbitMq" Version="4.9.0" />
+    <PackageReference Include="Ductus.FluentDocker.MsTest" Version="2.85.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.0.2" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.0.2" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IoTSharp.Data.Taos\IoTSharp.Data.Taos.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="libtaos_linux_x64.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="taos_win_x64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="taos_win_x86.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
